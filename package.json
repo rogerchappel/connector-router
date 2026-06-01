@@ -18,5 +18,22 @@
     "cli",
     "oss"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "files": [
+    "src",
+    "docs",
+    "fixtures",
+    "scripts",
+    "SKILL.md",
+    "README.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rogerchappel/connector-router.git"
+  },
+  "bugs": {
+    "url": "https://github.com/rogerchappel/connector-router/issues"
+  },
+  "homepage": "https://github.com/rogerchappel/connector-router#readme"
 }
