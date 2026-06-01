@@ -1,0 +1,17 @@
+{
+  "id": "social",
+  "name": "Fixture Social",
+  "actions": [
+    {
+      "id": "publish_post",
+      "risk": "public_publish",
+      "keywords": [
+        "publish social",
+        "post publicly"
+      ],
+      "requiredFields": [
+        "body"
+      ]
+    }
+  ]
+}

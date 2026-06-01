@@ -1,0 +1,20 @@
+{
+  "id": "route_fixture_001",
+  "intent": "create a CRM task",
+  "requiresApproval": false,
+  "approved": false,
+  "action": {
+    "connector": "crm",
+    "operation": "create_task",
+    "risk": "internal_write",
+    "fields": {
+      "title": "Follow up with Acme"
+    }
+  },
+  "evidence": [
+    {
+      "source": "crm.json",
+      "note": "Matched keywords: crm task"
+    }
+  ]
+}

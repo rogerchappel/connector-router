@@ -1,0 +1,18 @@
+{
+  "id": "crm",
+  "name": "Fixture CRM",
+  "actions": [
+    {
+      "id": "create_task",
+      "risk": "internal_write",
+      "keywords": [
+        "crm task",
+        "follow-up task",
+        "create a crm"
+      ],
+      "requiredFields": [
+        "title"
+      ]
+    }
+  ]
+}
