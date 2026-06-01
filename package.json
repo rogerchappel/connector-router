@@ -1,0 +1,22 @@
+{
+  "name": "connector-router",
+  "version": "0.1.0",
+  "description": "Safety-first local action router for agent connector selection and dry-run planning",
+  "type": "module",
+  "bin": {
+    "connector-router": "src/cli.js"
+  },
+  "scripts": {
+    "test": "node --test",
+    "check": "node --check src/*.js test/*.test.js",
+    "build": "node scripts/validate.js",
+    "smoke": "bash scripts/smoke.sh"
+  },
+  "keywords": [
+    "agent-skill",
+    "dry-run",
+    "cli",
+    "oss"
+  ],
+  "license": "MIT"
+}
