@@ -24,3 +24,13 @@ This project is local-first. It does not execute external actions or write to li
 - V1 uses deterministic local parsing.
 - Fixtures are intentionally small.
 - Human review is required before any generated plan or content is used externally.
+
+## Verify
+
+Run local verification before opening a PR or publishing:
+
+```bash
+npm test
+npm run check
+bash scripts/validate.sh
+```
