@@ -32,5 +32,5 @@ Run local verification before opening a PR or publishing:
 ```bash
 npm test
 npm run check
-bash scripts/validate.sh
+npm run release:check
 ```

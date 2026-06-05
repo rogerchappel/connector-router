@@ -10,7 +10,9 @@
     "test": "node --test",
     "check": "node --check src/*.js test/*.test.js",
     "build": "node scripts/validate.js",
-    "smoke": "bash scripts/smoke.sh"
+    "smoke": "bash scripts/smoke.sh",
+    "package:smoke": "npm pack --dry-run",
+    "release:check": "npm test && npm run check && npm run build && npm run smoke && npm run package:smoke"
   },
   "keywords": [
     "agent-skill",
@@ -26,7 +28,8 @@
     "scripts",
     "SKILL.md",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "SECURITY.md"
   ],
   "repository": {
     "type": "git",
