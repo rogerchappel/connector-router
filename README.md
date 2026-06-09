@@ -34,3 +34,14 @@ npm test
 npm run check
 npm run release:check
 ```
+
+## Development
+
+Run the same checks locally before opening a PR:
+
+- `npm run check` - node --check src/*.js test/*.test.js
+- `npm run build` - node scripts/validate.js
+- `npm test` - node --test
+- `npm run smoke` - bash scripts/smoke.sh
+- `npm run package:smoke` - npm pack --dry-run
+- `npm run release:check` - npm test && npm run check && npm run build && npm run smoke && npm run package:smoke
