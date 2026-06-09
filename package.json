@@ -39,5 +39,6 @@
   "bugs": {
     "url": "https://github.com/rogerchappel/connector-router/issues"
   },
-  "homepage": "https://github.com/rogerchappel/connector-router#readme"
+  "homepage": "https://github.com/rogerchappel/connector-router#readme",
+  "author": "Roger Chappel"
 }
