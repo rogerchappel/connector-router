@@ -32,6 +32,7 @@ Run local verification before opening a PR or publishing:
 ```bash
 npm test
 npm run check
+npm run lint
 npm run release:check
 ```
 
@@ -40,6 +41,7 @@ npm run release:check
 Run the same checks locally before opening a PR:
 
 - `npm run check` - node --check src/*.js test/*.test.js
+- `npm run lint` - alias for the static check
 - `npm run build` - node scripts/validate.js
 - `npm test` - node --test
 - `npm run smoke` - bash scripts/smoke.sh
