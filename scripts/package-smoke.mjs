@@ -11,7 +11,19 @@ const output = execFileSync("npm", ["pack", "--dry-run", "--json"], {
 
 const [packument] = JSON.parse(output);
 const packedFiles = new Set(packument.files.map((file) => file.path));
-const requiredFiles = new Set(["README.md", "LICENSE"]);
+const requiredFiles = new Set([
+  "README.md",
+  "LICENSE",
+  "SECURITY.md",
+  "CONTRIBUTING.md",
+  "CHANGELOG.md",
+  "SKILL.md",
+  "docs/API.md",
+  "docs/RELEASE_CANDIDATE.md",
+  "fixtures/connectors/crm.json",
+  "fixtures/fields/crm-task.json",
+  "scripts/smoke.sh",
+]);
 
 if (packageJson.main) {
   requiredFiles.add(packageJson.main.replace(/^\.\//, ""));
