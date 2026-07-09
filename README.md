@@ -12,7 +12,16 @@ npm run smoke
 ## CLI
 
 ```bash
+connector-router --help
 node src/cli.js plan "create a CRM task" --catalog fixtures/connectors --fields fixtures/fields/crm-task.json --max-risk internal_write
+```
+
+The `plan` command prints JSON with either an approved dry-run action or
+blocking findings. Validate a saved plan against the local connector catalog
+before handing it to a downstream approval layer:
+
+```bash
+node src/cli.js validate fixtures/plans/crm-task-plan.json --catalog fixtures/connectors
 ```
 
 ## Safety notes
