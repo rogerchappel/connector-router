@@ -22,6 +22,9 @@
     "oss"
   ],
   "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
   "files": [
     "src",
     "docs",
@@ -32,6 +35,7 @@
     "LICENSE",
     "SECURITY.md",
     "CONTRIBUTING.md",
+    "CODE_OF_CONDUCT.md",
     "CHANGELOG.md"
   ],
   "repository": {

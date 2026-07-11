@@ -16,6 +16,7 @@ const requiredFiles = new Set([
   "LICENSE",
   "SECURITY.md",
   "CONTRIBUTING.md",
+  "CODE_OF_CONDUCT.md",
   "CHANGELOG.md",
   "SKILL.md",
   "docs/API.md",
