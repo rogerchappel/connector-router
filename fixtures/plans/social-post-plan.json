@@ -1,0 +1,14 @@
+{
+  "id": "route_social_fixture",
+  "intent": "publish social post",
+  "requiresApproval": true,
+  "approved": false,
+  "action": {
+    "connector": "social",
+    "operation": "publish_post",
+    "risk": "public_publish",
+    "fields": {
+      "body": "hello"
+    }
+  }
+}

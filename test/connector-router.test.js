@@ -26,6 +26,11 @@ test('accepts approval-aware plans that match public publish metadata', () => {
   assert.deepEqual(validatePlan(plan, catalog), { ok: true, errors: [] });
 });
 test('cli plan emits JSON result', () => { const out=execFileSync('node',['src/cli.js','plan','create a CRM task','--catalog','fixtures/connectors','--fields','fixtures/fields/crm-task.json','--max-risk','internal_write'],{encoding:'utf8'}); assert.match(out,/crm/); });
+test('cli validates an approval-aware public publish plan', () => {
+  const result = spawnSync('node',['src/cli.js','validate','fixtures/plans/social-post-plan.json','--catalog','fixtures/connectors'],{encoding:'utf8'});
+  assert.equal(result.status, 0);
+  assert.deepEqual(JSON.parse(result.stdout), { ok: true, errors: [] });
+});
 test('cli exits nonzero when blocked by risk', () => { const r=spawnSync('node',['src/cli.js','plan','publish social post','--catalog','fixtures/connectors','--fields','fixtures/fields/social.json'],{encoding:'utf8'}); assert.equal(r.status,2); });
 test('cli help exits cleanly', () => { const r=spawnSync('node',['src/cli.js','--help'],{encoding:'utf8'}); assert.equal(r.status,0); assert.match(r.stdout,/Usage: connector-router/); });
 test('cli version prints package version', () => { const pkg=JSON.parse(fs.readFileSync('package.json','utf8')); const r=spawnSync('node',['src/cli.js','--version'],{encoding:'utf8'}); assert.equal(r.status,0); assert.equal(r.stdout.trim(),pkg.version); });
