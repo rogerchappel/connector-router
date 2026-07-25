@@ -29,7 +29,10 @@ export function validatePlan(plan, catalog) {
   const errors = [];
   if (!connector) errors.push('unknown connector');
   if (!action) errors.push('unknown action');
-  if (action) errors.push(...validateFields(action, plan.action.fields || {}).map(f => 'missing field: ' + f));
-  if (['external_write','public_publish'].includes(plan.action?.risk) && plan.requiresApproval !== true) errors.push('approval required');
+  if (action) {
+    if (plan.action.risk !== action.risk) errors.push('action risk does not match catalog');
+    errors.push(...validateFields(action, plan.action.fields || {}).map(f => 'missing field: ' + f));
+    if (['external_write','public_publish'].includes(action.risk) && plan.requiresApproval !== true) errors.push('approval required');
+  }
   return { ok: errors.length === 0, errors };
 }
