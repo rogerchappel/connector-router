@@ -1,14 +1,68 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'fs';
+import os from 'os';
+import path from 'path';
 import { execFileSync, spawnSync } from 'child_process';
-import { planIntent, validatePlan, findCandidates } from '../src/index.js';
+import { RISK_ORDER, planIntent, validatePlan, findCandidates } from '../src/index.js';
 const catalog = { connectors: [JSON.parse(fs.readFileSync('fixtures/connectors/crm.json','utf8')), JSON.parse(fs.readFileSync('fixtures/connectors/social.json','utf8'))] };
 test('finds candidates from deterministic keywords', () => assert.equal(findCandidates('create a CRM task', catalog).length, 1));
 test('plans safe draft connector action', () => { const r=planIntent({intent:'create a CRM task', catalog, fields:{title:'Follow up'}, maxRisk:'internal_write'}); assert.equal(r.ok,true); assert.equal(r.plan.action.connector,'crm'); });
 test('reports missing fields', () => { const r=planIntent({intent:'create a CRM task', catalog, fields:{}, maxRisk:'internal_write'}); assert.equal(r.ok,false); assert.match(r.errors[0], /missing field/); });
 test('blocks actions above max risk', () => { const r=planIntent({intent:'publish social post', catalog, fields:{body:'hello'}, maxRisk:'draft'}); assert.equal(r.ok,false); assert.match(r.errors[0], /exceed/); });
+test('rejects an unsupported maximum risk before planning', () => {
+  const result = planIntent({ intent: 'create a CRM task', catalog, fields: { title: 'Follow up' }, maxRisk: 'bogus' });
+  assert.deepEqual(result, { ok: false, errors: ['unsupported maxRisk: bogus'], candidates: [] });
+});
+test('accepts every supported risk as catalog metadata and maxRisk', () => {
+  for (const risk of RISK_ORDER) {
+    const riskCatalog = { connectors: [{
+      id: 'supported',
+      actions: [{ id: risk, risk, keywords: [risk] }]
+    }] };
+    const result = planIntent({ intent: risk, catalog: riskCatalog, maxRisk: risk });
+    assert.equal(result.ok, true, risk);
+    assert.equal(result.plan.action.risk, risk);
+    assert.equal(result.plan.requiresApproval, ['external_write', 'public_publish'].includes(risk));
+  }
+});
+test('rejects unknown and missing catalog risks before planning', () => {
+  const malformedCatalog = { connectors: [{
+    id: 'malformed',
+    actions: [
+      { id: 'unknown', risk: 'unrecognized', keywords: ['do it'] },
+      { id: 'missing', keywords: ['do it'] }
+    ]
+  }] };
+  const result = planIntent({ intent: 'do it', catalog: malformedCatalog, maxRisk: 'draft' });
+  assert.deepEqual(result, {
+    ok: false,
+    errors: [
+      'unsupported catalog risk for malformed.unknown: unrecognized',
+      'unsupported catalog risk for malformed.missing: missing'
+    ],
+    candidates: []
+  });
+  assert.equal(result.plan, undefined);
+});
 test('validates stored plans against catalog', () => { const plan=JSON.parse(fs.readFileSync('fixtures/plans/crm-task-plan.json','utf8')); assert.equal(validatePlan(plan,catalog).ok,true); });
+test('rejects unknown and missing catalog risks when validating stored plans', () => {
+  const plan = { requiresApproval: false, action: { connector: 'malformed', operation: 'unknown', risk: 'unrecognized', fields: {} } };
+  const malformedCatalog = { connectors: [{
+    id: 'malformed',
+    actions: [
+      { id: 'unknown', risk: 'unrecognized' },
+      { id: 'missing' }
+    ]
+  }] };
+  assert.deepEqual(validatePlan(plan, malformedCatalog), {
+    ok: false,
+    errors: [
+      'unsupported catalog risk for malformed.unknown: unrecognized',
+      'unsupported catalog risk for malformed.missing: missing'
+    ]
+  });
+});
 test('rejects stored plans whose risk understates catalog metadata', () => {
   const plan = {
     requiresApproval: false,
@@ -26,6 +80,29 @@ test('accepts approval-aware plans that match public publish metadata', () => {
   assert.deepEqual(validatePlan(plan, catalog), { ok: true, errors: [] });
 });
 test('cli plan emits JSON result', () => { const out=execFileSync('node',['src/cli.js','plan','create a CRM task','--catalog','fixtures/connectors','--fields','fixtures/fields/crm-task.json','--max-risk','internal_write'],{encoding:'utf8'}); assert.match(out,/crm/); });
+test('cli rejects an unsupported --max-risk value', () => {
+  const result = spawnSync('node',['src/cli.js','plan','create a CRM task','--catalog','fixtures/connectors','--fields','fixtures/fields/crm-task.json','--max-risk','bogus'],{encoding:'utf8'});
+  assert.equal(result.status, 2);
+  assert.deepEqual(JSON.parse(result.stdout), { ok: false, errors: ['unsupported maxRisk: bogus'], candidates: [] });
+});
+test('cli rejects a catalog action with a missing risk', () => {
+  const catalogDir = fs.mkdtempSync(path.join(os.tmpdir(), 'connector-router-catalog-'));
+  try {
+    fs.writeFileSync(path.join(catalogDir, 'malformed.json'), JSON.stringify({
+      id: 'malformed',
+      actions: [{ id: 'missing', keywords: ['do it'] }]
+    }));
+    const result = spawnSync('node',['src/cli.js','plan','do it','--catalog',catalogDir],{encoding:'utf8'});
+    assert.equal(result.status, 2);
+    assert.deepEqual(JSON.parse(result.stdout), {
+      ok: false,
+      errors: ['unsupported catalog risk for malformed.missing: missing'],
+      candidates: []
+    });
+  } finally {
+    fs.rmSync(catalogDir, { recursive: true, force: true });
+  }
+});
 test('cli validates an approval-aware public publish plan', () => {
   const result = spawnSync('node',['src/cli.js','validate','fixtures/plans/social-post-plan.json','--catalog','fixtures/connectors'],{encoding:'utf8'});
   assert.equal(result.status, 0);

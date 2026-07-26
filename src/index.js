@@ -8,7 +8,22 @@ export function findCandidates(intent, connectors) {
 export function validateFields(action, fields={}) {
   return (action.requiredFields || []).filter(field => fields[field] === undefined || fields[field] === '');
 }
+function formatRisk(risk) {
+  return risk === undefined ? 'missing' : String(risk);
+}
+export function validateCatalogRisks(catalog) {
+  return loadCatalog(catalog).flatMap(connector => (connector.actions || []).flatMap(action =>
+    RISK_ORDER.includes(action.risk)
+      ? []
+      : [`unsupported catalog risk for ${connector.id}.${action.id}: ${formatRisk(action.risk)}`]
+  ));
+}
 export function planIntent({ intent, catalog, fields={}, maxRisk='draft' }) {
+  if (!RISK_ORDER.includes(maxRisk)) {
+    return { ok:false, errors:[`unsupported maxRisk: ${formatRisk(maxRisk)}`], candidates:[] };
+  }
+  const catalogRiskErrors = validateCatalogRisks(catalog);
+  if (catalogRiskErrors.length) return { ok:false, errors:catalogRiskErrors, candidates:[] };
   const candidates = findCandidates(intent, catalog);
   if (candidates.length === 0) return { ok:false, errors:['no matching connector action'], candidates:[] };
   const allowed = candidates.filter(({action}) => RISK_ORDER.indexOf(action.risk) <= RISK_ORDER.indexOf(maxRisk));
@@ -23,6 +38,8 @@ export function planIntent({ intent, catalog, fields={}, maxRisk='draft' }) {
   return missing.length ? { ok:false, errors: missing.map(f => 'missing field: ' + f), plan } : { ok:true, plan };
 }
 export function validatePlan(plan, catalog) {
+  const catalogRiskErrors = validateCatalogRisks(catalog);
+  if (catalogRiskErrors.length) return { ok:false, errors:catalogRiskErrors };
   const connectors = loadCatalog(catalog);
   const connector = connectors.find(c => c.id === plan.action?.connector);
   const action = connector?.actions?.find(a => a.id === plan.action?.operation);

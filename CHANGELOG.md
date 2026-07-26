@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Reject unsupported or missing catalog risks and unsupported `--max-risk`
+  values before creating or validating plans.
 - Add release-readiness checks for package metadata, pack contents, and CI verification.
 All notable changes to this project will be documented in this file.
 
