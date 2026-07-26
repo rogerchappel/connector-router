@@ -30,7 +30,13 @@ node src/cli.js plan "create a CRM task" --catalog fixtures/connectors --fields 
 ```
 
 The `plan` command prints JSON with either an approved dry-run action or
-blocking findings. Validate a saved plan against the local connector catalog
+blocking findings. Supported risk values, from least to most privileged, are
+`read`, `draft`, `internal_write`, `external_write`, and `public_publish`.
+Both catalog actions and `--max-risk` must use one of these exact values.
+Unsupported or missing catalog risks, and unsupported `--max-risk` values,
+produce an explicit JSON error and exit status `2`; no plan is returned.
+
+Validate a saved plan against the local connector catalog
 before handing it to a downstream approval layer:
 
 ```bash
