@@ -4,7 +4,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { execFileSync, spawnSync } from 'child_process';
-import { planIntent, validatePlan, findCandidates } from '../src/index.js';
+import { RISK_ORDER, planIntent, validatePlan, findCandidates } from '../src/index.js';
 const catalog = { connectors: [JSON.parse(fs.readFileSync('fixtures/connectors/crm.json','utf8')), JSON.parse(fs.readFileSync('fixtures/connectors/social.json','utf8'))] };
 test('finds candidates from deterministic keywords', () => assert.equal(findCandidates('create a CRM task', catalog).length, 1));
 test('plans safe draft connector action', () => { const r=planIntent({intent:'create a CRM task', catalog, fields:{title:'Follow up'}, maxRisk:'internal_write'}); assert.equal(r.ok,true); assert.equal(r.plan.action.connector,'crm'); });
@@ -13,6 +13,18 @@ test('blocks actions above max risk', () => { const r=planIntent({intent:'publis
 test('rejects an unsupported maximum risk before planning', () => {
   const result = planIntent({ intent: 'create a CRM task', catalog, fields: { title: 'Follow up' }, maxRisk: 'bogus' });
   assert.deepEqual(result, { ok: false, errors: ['unsupported maxRisk: bogus'], candidates: [] });
+});
+test('accepts every supported risk as catalog metadata and maxRisk', () => {
+  for (const risk of RISK_ORDER) {
+    const riskCatalog = { connectors: [{
+      id: 'supported',
+      actions: [{ id: risk, risk, keywords: [risk] }]
+    }] };
+    const result = planIntent({ intent: risk, catalog: riskCatalog, maxRisk: risk });
+    assert.equal(result.ok, true, risk);
+    assert.equal(result.plan.action.risk, risk);
+    assert.equal(result.plan.requiresApproval, ['external_write', 'public_publish'].includes(risk));
+  }
 });
 test('rejects unknown and missing catalog risks before planning', () => {
   const malformedCatalog = { connectors: [{
