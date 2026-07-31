@@ -1,5 +1,51 @@
 export const RISK_ORDER = ['read','draft','internal_write','external_write','public_publish'];
-export function loadCatalog(catalog) { return Array.isArray(catalog) ? catalog : catalog.connectors || []; }
+export function loadCatalog(catalog) {
+  if (Array.isArray(catalog)) return catalog;
+  return catalog && Array.isArray(catalog.connectors) ? catalog.connectors : [];
+}
+function isNonEmptyString(value) {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+function isOptionalStringArray(value) {
+  return value === undefined || (
+    Array.isArray(value) && value.every(isNonEmptyString)
+  );
+}
+function validateCatalogShape(catalog) {
+  if (!Array.isArray(catalog) && !(catalog && Array.isArray(catalog.connectors))) {
+    return ['catalog connectors must be an array'];
+  }
+  return loadCatalog(catalog).flatMap((connector, connectorIndex) => {
+    const connectorPath = `catalog connector[${connectorIndex}]`;
+    if (!connector || typeof connector !== 'object' || Array.isArray(connector)) {
+      return [`${connectorPath} must be an object`];
+    }
+    const errors = [];
+    if (!isNonEmptyString(connector.id)) {
+      errors.push(`${connectorPath}.id must be a non-empty string`);
+    }
+    if (connector.actions !== undefined && !Array.isArray(connector.actions)) {
+      errors.push(`${connectorPath}.actions must be an array`);
+      return errors;
+    }
+    for (const [actionIndex, action] of (connector.actions || []).entries()) {
+      const actionPath = `${connectorPath}.actions[${actionIndex}]`;
+      if (!action || typeof action !== 'object' || Array.isArray(action)) {
+        errors.push(`${actionPath} must be an object`);
+        continue;
+      }
+      if (!isNonEmptyString(action.id)) {
+        errors.push(`${actionPath}.id must be a non-empty string`);
+      }
+      for (const field of ['keywords', 'requiredFields']) {
+        if (!isOptionalStringArray(action[field])) {
+          errors.push(`${actionPath}.${field} must be an array of non-empty strings`);
+        }
+      }
+    }
+    return errors;
+  });
+}
 export function findCandidates(intent, connectors) {
   const text = intent.toLowerCase();
   return loadCatalog(connectors).flatMap(connector => (connector.actions || []).map(action => ({connector, action})))
@@ -18,12 +64,16 @@ export function validateCatalogRisks(catalog) {
       : [`unsupported catalog risk for ${connector.id}.${action.id}: ${formatRisk(action.risk)}`]
   ));
 }
+export function validateCatalog(catalog) {
+  const shapeErrors = validateCatalogShape(catalog);
+  return shapeErrors.length ? shapeErrors : validateCatalogRisks(catalog);
+}
 export function planIntent({ intent, catalog, fields={}, maxRisk='draft' }) {
   if (!RISK_ORDER.includes(maxRisk)) {
     return { ok:false, errors:[`unsupported maxRisk: ${formatRisk(maxRisk)}`], candidates:[] };
   }
-  const catalogRiskErrors = validateCatalogRisks(catalog);
-  if (catalogRiskErrors.length) return { ok:false, errors:catalogRiskErrors, candidates:[] };
+  const catalogErrors = validateCatalog(catalog);
+  if (catalogErrors.length) return { ok:false, errors:catalogErrors, candidates:[] };
   const candidates = findCandidates(intent, catalog);
   if (candidates.length === 0) return { ok:false, errors:['no matching connector action'], candidates:[] };
   const allowed = candidates.filter(({action}) => RISK_ORDER.indexOf(action.risk) <= RISK_ORDER.indexOf(maxRisk));
@@ -38,8 +88,8 @@ export function planIntent({ intent, catalog, fields={}, maxRisk='draft' }) {
   return missing.length ? { ok:false, errors: missing.map(f => 'missing field: ' + f), plan } : { ok:true, plan };
 }
 export function validatePlan(plan, catalog) {
-  const catalogRiskErrors = validateCatalogRisks(catalog);
-  if (catalogRiskErrors.length) return { ok:false, errors:catalogRiskErrors };
+  const catalogErrors = validateCatalog(catalog);
+  if (catalogErrors.length) return { ok:false, errors:catalogErrors };
   const connectors = loadCatalog(catalog);
   const connector = connectors.find(c => c.id === plan.action?.connector);
   const action = connector?.actions?.find(a => a.id === plan.action?.operation);
