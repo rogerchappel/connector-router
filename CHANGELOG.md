@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Validate connector and action identifiers and optional action metadata arrays
+  before catalog matching or stored-plan validation.
 - Reject unsupported or missing catalog risks and unsupported `--max-risk`
   values before creating or validating plans.
 - Add release-readiness checks for package metadata, pack contents, and CI verification.
