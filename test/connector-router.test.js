@@ -176,6 +176,26 @@ test('cli emits JSON for malformed catalog arrays', () => {
     fs.rmSync(catalogDir, { recursive: true, force: true });
   }
 });
+test('cli accepts missing and valid optional catalog arrays', () => {
+  const catalogDir = fs.mkdtempSync(path.join(os.tmpdir(), 'connector-router-catalog-'));
+  try {
+    fs.writeFileSync(path.join(catalogDir, 'valid.json'), JSON.stringify({
+      id: 'valid',
+      actions: [
+        { id: 'list', risk: 'read' },
+        { id: 'create', risk: 'draft', keywords: ['create'], requiredFields: ['title'] }
+      ]
+    }));
+    const result = spawnSync('node',[
+      'src/cli.js', 'plan', 'create', '--catalog', catalogDir,
+      '--fields', 'fixtures/fields/crm-task.json', '--max-risk', 'draft'
+    ],{encoding:'utf8'});
+    assert.equal(result.status, 0);
+    assert.equal(JSON.parse(result.stdout).ok, true);
+  } finally {
+    fs.rmSync(catalogDir, { recursive: true, force: true });
+  }
+});
 test('cli validates an approval-aware public publish plan', () => {
   const result = spawnSync('node',['src/cli.js','validate','fixtures/plans/social-post-plan.json','--catalog','fixtures/connectors'],{encoding:'utf8'});
   assert.equal(result.status, 0);
