@@ -4,7 +4,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { execFileSync, spawnSync } from 'child_process';
-import { RISK_ORDER, planIntent, validatePlan, findCandidates } from '../src/index.js';
+import { RISK_ORDER, planIntent, validatePlan, findCandidates, validateCatalog } from '../src/index.js';
 const catalog = { connectors: [JSON.parse(fs.readFileSync('fixtures/connectors/crm.json','utf8')), JSON.parse(fs.readFileSync('fixtures/connectors/social.json','utf8'))] };
 test('finds candidates from deterministic keywords', () => assert.equal(findCandidates('create a CRM task', catalog).length, 1));
 test('plans safe draft connector action', () => { const r=planIntent({intent:'create a CRM task', catalog, fields:{title:'Follow up'}, maxRisk:'internal_write'}); assert.equal(r.ok,true); assert.equal(r.plan.action.connector,'crm'); });
@@ -45,7 +45,58 @@ test('rejects unknown and missing catalog risks before planning', () => {
   });
   assert.equal(result.plan, undefined);
 });
+test('validates catalog connector and action identifiers', () => {
+  const malformedCatalog = { connectors: [
+    { id: '', actions: [{ id: 'create', risk: 'draft' }] },
+    { id: 'crm', actions: [{ id: ' ', risk: 'draft' }] }
+  ] };
+  assert.deepEqual(validateCatalog(malformedCatalog), [
+    'catalog connector[0].id must be a non-empty string',
+    'catalog connector[1].actions[0].id must be a non-empty string'
+  ]);
+});
+test('rejects malformed optional action arrays before matching', () => {
+  const cases = [
+    {
+      action: { id: 'create', risk: 'draft', keywords: 'create' },
+      error: 'catalog connector[0].actions[0].keywords must be an array of non-empty strings'
+    },
+    {
+      action: { id: 'create', risk: 'draft', keywords: ['create', 7], requiredFields: ['title', ''] },
+      errors: [
+        'catalog connector[0].actions[0].keywords must be an array of non-empty strings',
+        'catalog connector[0].actions[0].requiredFields must be an array of non-empty strings'
+      ]
+    }
+  ];
+  for (const { action, error, errors = [error] } of cases) {
+    assert.deepEqual(
+      planIntent({ intent: 'create', catalog: { connectors: [{ id: 'crm', actions: [action] }] } }),
+      { ok: false, errors, candidates: [] }
+    );
+  }
+});
+test('accepts missing and valid optional action arrays', () => {
+  assert.deepEqual(validateCatalog({ connectors: [{
+    id: 'crm',
+    actions: [
+      { id: 'list', risk: 'read' },
+      { id: 'create', risk: 'draft', keywords: ['create'], requiredFields: ['title'] }
+    ]
+  }] }), []);
+});
 test('validates stored plans against catalog', () => { const plan=JSON.parse(fs.readFileSync('fixtures/plans/crm-task-plan.json','utf8')); assert.equal(validatePlan(plan,catalog).ok,true); });
+test('rejects malformed catalog arrays before validating stored plans', () => {
+  const plan = { action: { connector: 'crm', operation: 'create', risk: 'draft', fields: {} } };
+  const malformedCatalog = { connectors: [{
+    id: 'crm',
+    actions: [{ id: 'create', risk: 'draft', requiredFields: ['title', false] }]
+  }] };
+  assert.deepEqual(validatePlan(plan, malformedCatalog), {
+    ok: false,
+    errors: ['catalog connector[0].actions[0].requiredFields must be an array of non-empty strings']
+  });
+});
 test('rejects unknown and missing catalog risks when validating stored plans', () => {
   const plan = { requiresApproval: false, action: { connector: 'malformed', operation: 'unknown', risk: 'unrecognized', fields: {} } };
   const malformedCatalog = { connectors: [{
@@ -97,6 +148,28 @@ test('cli rejects a catalog action with a missing risk', () => {
     assert.deepEqual(JSON.parse(result.stdout), {
       ok: false,
       errors: ['unsupported catalog risk for malformed.missing: missing'],
+      candidates: []
+    });
+  } finally {
+    fs.rmSync(catalogDir, { recursive: true, force: true });
+  }
+});
+test('cli emits JSON for malformed catalog arrays', () => {
+  const catalogDir = fs.mkdtempSync(path.join(os.tmpdir(), 'connector-router-catalog-'));
+  try {
+    fs.writeFileSync(path.join(catalogDir, 'malformed.json'), JSON.stringify({
+      id: 'malformed',
+      actions: [{ id: 'create', risk: 'internal_write', keywords: 'create', requiredFields: ['title', 7] }]
+    }));
+    const result = spawnSync('node',['src/cli.js','plan','create','--catalog',catalogDir],{encoding:'utf8'});
+    assert.equal(result.status, 2);
+    assert.equal(result.stderr, '');
+    assert.deepEqual(JSON.parse(result.stdout), {
+      ok: false,
+      errors: [
+        'catalog connector[0].actions[0].keywords must be an array of non-empty strings',
+        'catalog connector[0].actions[0].requiredFields must be an array of non-empty strings'
+      ],
       candidates: []
     });
   } finally {
