@@ -49,6 +49,15 @@ Validation treats the matched catalog action as authoritative: a saved plan's
 `external_write` or `public_publish` must set `requiresApproval` to `true`.
 Changing stored plan metadata cannot lower the catalog's approval boundary.
 
+### CLI errors and exit statuses
+
+`plan` accepts one intent plus `--catalog`, `--fields`, and `--max-risk`.
+`validate` accepts one plan file plus `--catalog`. Option names and values are
+strict: unknown or repeated options, extra positional arguments, and options
+without values print an actionable error followed by the command usage and exit
+with status `1`. Validly parsed planning or catalog validation rejections remain
+structured JSON responses with status `2`. Successful commands exit `0`.
+
 ## Safety notes
 
 This project is local-first. It does not execute external actions or write to live accounts. Outputs are review artifacts that another approval-controlled layer may consume.
