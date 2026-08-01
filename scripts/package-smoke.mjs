@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { mkdtemp, rm, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -72,6 +72,11 @@ try {
   const version = execFileSync(binPath, ["--version"], { encoding: "utf8" }).trim();
   if (version !== packageJson.version) {
     throw new Error(`installed CLI version ${version} did not match package ${packageJson.version}`);
+  }
+
+  const invalid = spawnSync(binPath, ["validate", "plan.json", "--catalog"], { encoding: "utf8" });
+  if (invalid.status !== 1 || !invalid.stderr.includes("missing value for --catalog") || !invalid.stderr.includes(`Usage: ${packageJson.name}`)) {
+    throw new Error(`installed CLI did not reject an invalid invocation with usage status 1`);
   }
 
   console.log(

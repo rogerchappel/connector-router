@@ -204,3 +204,17 @@ test('cli validates an approval-aware public publish plan', () => {
 test('cli exits nonzero when blocked by risk', () => { const r=spawnSync('node',['src/cli.js','plan','publish social post','--catalog','fixtures/connectors','--fields','fixtures/fields/social.json'],{encoding:'utf8'}); assert.equal(r.status,2); });
 test('cli help exits cleanly', () => { const r=spawnSync('node',['src/cli.js','--help'],{encoding:'utf8'}); assert.equal(r.status,0); assert.match(r.stdout,/Usage: connector-router/); });
 test('cli version prints package version', () => { const pkg=JSON.parse(fs.readFileSync('package.json','utf8')); const r=spawnSync('node',['src/cli.js','--version'],{encoding:'utf8'}); assert.equal(r.status,0); assert.equal(r.stdout.trim(),pkg.version); });
+for (const { name, args, message } of [
+  { name: 'unknown option', args: ['plan', 'intent', '--typo', 'value'], message: 'unknown option for plan: --typo' },
+  { name: 'unexpected positional argument', args: ['validate', 'fixtures/plans/crm-task-plan.json', 'extra.json'], message: 'unexpected positional argument: extra.json' },
+  { name: 'duplicate option', args: ['plan', 'intent', '--catalog', 'one', '--catalog', 'two'], message: 'duplicate option: --catalog' },
+  { name: 'missing option value', args: ['validate', 'fixtures/plans/crm-task-plan.json', '--catalog'], message: 'missing value for --catalog' }
+]) {
+  test(`cli rejects ${name} with actionable usage`, () => {
+    const result = spawnSync('node', ['src/cli.js', ...args], { encoding: 'utf8' });
+    assert.equal(result.status, 1);
+    assert.equal(result.stdout, '');
+    assert.match(result.stderr, new RegExp(message.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+    assert.match(result.stderr, /Usage: connector-router <command>/);
+  });
+}
