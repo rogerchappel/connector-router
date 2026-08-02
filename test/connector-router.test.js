@@ -9,6 +9,13 @@ const catalog = { connectors: [JSON.parse(fs.readFileSync('fixtures/connectors/c
 test('finds candidates from deterministic keywords', () => assert.equal(findCandidates('create a CRM task', catalog).length, 1));
 test('plans safe draft connector action', () => { const r=planIntent({intent:'create a CRM task', catalog, fields:{title:'Follow up'}, maxRisk:'internal_write'}); assert.equal(r.ok,true); assert.equal(r.plan.action.connector,'crm'); });
 test('reports missing fields', () => { const r=planIntent({intent:'create a CRM task', catalog, fields:{}, maxRisk:'internal_write'}); assert.equal(r.ok,false); assert.match(r.errors[0], /missing field/); });
+test('rejects invalid required-field values while planning', () => {
+  for (const title of [false, null, '', '   ', 0, [], {}]) {
+    const result = planIntent({ intent: 'create a CRM task', catalog, fields: { title }, maxRisk: 'internal_write' });
+    assert.deepEqual(result.errors, ['missing field: title'], JSON.stringify(title));
+    assert.equal(result.ok, false);
+  }
+});
 test('blocks actions above max risk', () => { const r=planIntent({intent:'publish social post', catalog, fields:{body:'hello'}, maxRisk:'draft'}); assert.equal(r.ok,false); assert.match(r.errors[0], /exceed/); });
 test('rejects an unsupported maximum risk before planning', () => {
   const result = planIntent({ intent: 'create a CRM task', catalog, fields: { title: 'Follow up' }, maxRisk: 'bogus' });
@@ -86,6 +93,29 @@ test('accepts missing and valid optional action arrays', () => {
   }] }), []);
 });
 test('validates stored plans against catalog', () => { const plan=JSON.parse(fs.readFileSync('fixtures/plans/crm-task-plan.json','utf8')); assert.equal(validatePlan(plan,catalog).ok,true); });
+test('rejects malformed stored-plan structure before catalog lookup', () => {
+  const malformedCatalog = null;
+  for (const [plan, errors] of [
+    [null, ['plan must be an object']],
+    [[], ['plan must be an object']],
+    [{}, ['plan.action must be an object']],
+    [{ action: null }, ['plan.action must be an object']],
+    [{ action: [] }, ['plan.action must be an object']],
+    [{ action: { fields: null } }, ['plan.action.fields must be an object']],
+    [{ action: { fields: [] } }, ['plan.action.fields must be an object']]
+  ]) {
+    assert.deepEqual(validatePlan(plan, malformedCatalog), { ok: false, errors });
+  }
+});
+test('rejects invalid required-field values in stored plans', () => {
+  for (const title of [false, null, '', '   ', 0, [], {}]) {
+    const plan = {
+      requiresApproval: false,
+      action: { connector: 'crm', operation: 'create_task', risk: 'internal_write', fields: { title } }
+    };
+    assert.deepEqual(validatePlan(plan, catalog), { ok: false, errors: ['missing field: title'] }, JSON.stringify(title));
+  }
+});
 test('rejects malformed catalog arrays before validating stored plans', () => {
   const plan = { action: { connector: 'crm', operation: 'create', risk: 'draft', fields: {} } };
   const malformedCatalog = { connectors: [{
@@ -200,6 +230,25 @@ test('cli validates an approval-aware public publish plan', () => {
   const result = spawnSync('node',['src/cli.js','validate','fixtures/plans/social-post-plan.json','--catalog','fixtures/connectors'],{encoding:'utf8'});
   assert.equal(result.status, 0);
   assert.deepEqual(JSON.parse(result.stdout), { ok: true, errors: [] });
+});
+test('cli emits structured JSON for malformed stored plans', () => {
+  for (const [contents, errors] of [
+    ['null', ['plan must be an object']],
+    ['{"action":null}', ['plan.action must be an object']],
+    ['{"action":{"fields":[]}}', ['plan.action.fields must be an object']]
+  ]) {
+    const planDir = fs.mkdtempSync(path.join(os.tmpdir(), 'connector-router-plan-'));
+    try {
+      const planFile = path.join(planDir, 'plan.json');
+      fs.writeFileSync(planFile, contents);
+      const result = spawnSync('node', ['src/cli.js', 'validate', planFile, '--catalog', 'fixtures/connectors'], { encoding: 'utf8' });
+      assert.equal(result.status, 2);
+      assert.equal(result.stderr, '');
+      assert.deepEqual(JSON.parse(result.stdout), { ok: false, errors });
+    } finally {
+      fs.rmSync(planDir, { recursive: true, force: true });
+    }
+  }
 });
 test('cli exits nonzero when blocked by risk', () => { const r=spawnSync('node',['src/cli.js','plan','publish social post','--catalog','fixtures/connectors','--fields','fixtures/fields/social.json'],{encoding:'utf8'}); assert.equal(r.status,2); });
 test('cli help exits cleanly', () => { const r=spawnSync('node',['src/cli.js','--help'],{encoding:'utf8'}); assert.equal(r.status,0); assert.match(r.stdout,/Usage: connector-router/); });

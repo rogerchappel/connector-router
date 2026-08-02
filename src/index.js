@@ -6,6 +6,9 @@ export function loadCatalog(catalog) {
 function isNonEmptyString(value) {
   return typeof value === 'string' && value.trim().length > 0;
 }
+function isObject(value) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
 function isOptionalStringArray(value) {
   return value === undefined || (
     Array.isArray(value) && value.every(isNonEmptyString)
@@ -52,7 +55,7 @@ export function findCandidates(intent, connectors) {
     .filter(({action}) => (action.keywords || []).some(k => text.includes(k.toLowerCase())));
 }
 export function validateFields(action, fields={}) {
-  return (action.requiredFields || []).filter(field => fields[field] === undefined || fields[field] === '');
+  return (action.requiredFields || []).filter(field => !isNonEmptyString(fields[field]));
 }
 function formatRisk(risk) {
   return risk === undefined ? 'missing' : String(risk);
@@ -88,6 +91,11 @@ export function planIntent({ intent, catalog, fields={}, maxRisk='draft' }) {
   return missing.length ? { ok:false, errors: missing.map(f => 'missing field: ' + f), plan } : { ok:true, plan };
 }
 export function validatePlan(plan, catalog) {
+  if (!isObject(plan)) return { ok:false, errors:['plan must be an object'] };
+  if (!isObject(plan.action)) return { ok:false, errors:['plan.action must be an object'] };
+  if (plan.action.fields !== undefined && !isObject(plan.action.fields)) {
+    return { ok:false, errors:['plan.action.fields must be an object'] };
+  }
   const catalogErrors = validateCatalog(catalog);
   if (catalogErrors.length) return { ok:false, errors:catalogErrors };
   const connectors = loadCatalog(catalog);

@@ -26,3 +26,15 @@ validation after finding malformed metadata.
 The CLI prints those library errors as JSON and exits with status `2`. This
 distinguishes a rejected request from CLI usage or file errors, which exit with
 status `1`.
+
+## Stored plans and required fields
+
+`validatePlan` requires a stored plan to be a JSON object with an `action`
+object. When present, `action.fields` must also be an object. These structural
+checks run before catalog validation, so malformed plans return deterministic
+`{ "ok": false, "errors": [...] }` results without attempting catalog lookup.
+
+Every field named by an action's `requiredFields` must have a non-empty string
+value after trimming whitespace. Missing properties, `null`, booleans, numbers,
+arrays, objects, and empty or whitespace-only strings are reported as
+`missing field: <name>`. `planIntent` and `validatePlan` apply this same rule.
