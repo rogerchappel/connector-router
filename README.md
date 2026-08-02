@@ -48,6 +48,10 @@ Validation treats the matched catalog action as authoritative: a saved plan's
 `action.risk` must exactly match the catalog risk, and actions cataloged as
 `external_write` or `public_publish` must set `requiresApproval` to `true`.
 Changing stored plan metadata cannot lower the catalog's approval boundary.
+Saved plans must be JSON objects containing an `action` object; if present,
+`action.fields` must be an object. Required fields accept only non-empty string
+values after trimming whitespace. Malformed plan structure and invalid required
+values produce structured JSON errors and exit status `2`.
 
 ### CLI errors and exit statuses
 
