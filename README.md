@@ -35,6 +35,9 @@ blocking findings. Supported risk values, from least to most privileged, are
 Both catalog actions and `--max-risk` must use one of these exact values.
 Unsupported or missing catalog risks, and unsupported `--max-risk` values,
 produce an explicit JSON error and exit status `2`; no plan is returned.
+Connector IDs must be unique across a catalog, and action IDs must be unique
+within each connector. Duplicate identifiers are rejected before matching or
+saved-plan validation.
 
 Validate a saved plan against the local connector catalog
 before handing it to a downstream approval layer:

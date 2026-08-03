@@ -18,6 +18,13 @@ present, `actions`, `keywords`, and `requiredFields` must be arrays;
 `keywords` and `requiredFields` may contain only non-empty strings. The two
 action metadata arrays are optional.
 
+Connector IDs must be unique across the catalog. Action IDs must be unique
+within their connector (the same action ID may be used by different
+connectors). Duplicate-ID errors identify both the duplicate and original
+array locations. Catalog uniqueness is checked before risk validation,
+planning, or stored-plan lookup, so ambiguous risk and approval metadata is
+never resolved by array order.
+
 Malformed shape, unsupported risk values, and missing catalog risks return
 `ok: false` with deterministic errors. Planning errors also include
 `candidates: []`; catalog validation never attempts keyword matching or field
