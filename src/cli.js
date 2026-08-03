@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { planIntent, validatePlan } from './index.js';
 import { CliUsageError, parseCommandLine, USAGE, USAGE_STATUS } from './cli-args.js';
 function readJson(file) { return JSON.parse(fs.readFileSync(file,'utf8')); }
 function readCatalog(dir) { return { connectors: fs.readdirSync(dir).filter(f=>f.endsWith('.json')).map(f=>readJson(path.join(dir,f))) }; }
-const PKG = (() => { try { const f = path.join(path.dirname(new URL(import.meta.url).pathname),'..','package.json'); return JSON.parse(fs.readFileSync(f,'utf8')); } catch(e) { return {name:'connector-router',version:'0.0.0'}; } })();
+const PKG = (() => { try { const f = path.join(path.dirname(fileURLToPath(import.meta.url)),'..','package.json'); return JSON.parse(fs.readFileSync(f,'utf8')); } catch(e) { return {name:'connector-router',version:'0.0.0'}; } })();
 try {
   const { command, positional, options } = parseCommandLine(process.argv.slice(2));
   if (command === '--version') { console.log(PKG.version); process.exit(0); }
