@@ -7,6 +7,7 @@
 - Reject unsupported or missing catalog risks and unsupported `--max-risk`
   values before creating or validating plans.
 - Add release-readiness checks for package metadata, pack contents, and CI verification.
+- Report the packaged CLI version correctly when installed beneath a path containing spaces.
 All notable changes to this project will be documented in this file.
 
 ## 0.1.0 - 2026-06-29
