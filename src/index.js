@@ -49,6 +49,31 @@ function validateCatalogShape(catalog) {
     return errors;
   });
 }
+function validateCatalogUniqueness(catalog) {
+  const connectorLocations = new Map();
+  const errors = [];
+  for (const [connectorIndex, connector] of loadCatalog(catalog).entries()) {
+    const connectorPath = `catalog connector[${connectorIndex}]`;
+    const previousConnectorPath = connectorLocations.get(connector.id);
+    if (previousConnectorPath) {
+      errors.push(`${connectorPath}.id duplicates ${previousConnectorPath}.id: ${connector.id}`);
+    } else {
+      connectorLocations.set(connector.id, connectorPath);
+    }
+
+    const actionLocations = new Map();
+    for (const [actionIndex, action] of (connector.actions || []).entries()) {
+      const actionPath = `${connectorPath}.actions[${actionIndex}]`;
+      const previousActionPath = actionLocations.get(action.id);
+      if (previousActionPath) {
+        errors.push(`${actionPath}.id duplicates ${previousActionPath}.id: ${action.id}`);
+      } else {
+        actionLocations.set(action.id, actionPath);
+      }
+    }
+  }
+  return errors;
+}
 export function findCandidates(intent, connectors) {
   const text = intent.toLowerCase();
   return loadCatalog(connectors).flatMap(connector => (connector.actions || []).map(action => ({connector, action})))
@@ -69,7 +94,9 @@ export function validateCatalogRisks(catalog) {
 }
 export function validateCatalog(catalog) {
   const shapeErrors = validateCatalogShape(catalog);
-  return shapeErrors.length ? shapeErrors : validateCatalogRisks(catalog);
+  if (shapeErrors.length) return shapeErrors;
+  const uniquenessErrors = validateCatalogUniqueness(catalog);
+  return uniquenessErrors.length ? uniquenessErrors : validateCatalogRisks(catalog);
 }
 export function planIntent({ intent, catalog, fields={}, maxRisk='draft' }) {
   if (!RISK_ORDER.includes(maxRisk)) {

@@ -62,6 +62,43 @@ test('validates catalog connector and action identifiers', () => {
     'catalog connector[1].actions[0].id must be a non-empty string'
   ]);
 });
+test('rejects duplicate connector and action identifiers with their locations', () => {
+  const duplicateCatalog = { connectors: [
+    {
+      id: 'crm',
+      actions: [
+        { id: 'create', risk: 'draft' },
+        { id: 'create', risk: 'internal_write' }
+      ]
+    },
+    { id: 'crm', actions: [{ id: 'list', risk: 'read' }] }
+  ] };
+  assert.deepEqual(validateCatalog(duplicateCatalog), [
+    'catalog connector[0].actions[1].id duplicates catalog connector[0].actions[0].id: create',
+    'catalog connector[1].id duplicates catalog connector[0].id: crm'
+  ]);
+});
+test('rejects conflicting duplicate metadata before planning or stored-plan lookup', () => {
+  const duplicateCatalog = { connectors: [{
+    id: 'social',
+    actions: [
+      { id: 'publish', risk: 'read', keywords: ['publish'] },
+      { id: 'publish', risk: 'public_publish', keywords: ['publish'] }
+    ]
+  }] };
+  const errors = [
+    'catalog connector[0].actions[1].id duplicates catalog connector[0].actions[0].id: publish'
+  ];
+  assert.deepEqual(planIntent({ intent: 'publish', catalog: duplicateCatalog, maxRisk: 'read' }), {
+    ok: false,
+    errors,
+    candidates: []
+  });
+  assert.deepEqual(validatePlan({
+    requiresApproval: false,
+    action: { connector: 'social', operation: 'publish', risk: 'read', fields: {} }
+  }, duplicateCatalog), { ok: false, errors });
+});
 test('rejects malformed optional action arrays before matching', () => {
   const cases = [
     {
@@ -200,6 +237,29 @@ test('cli emits JSON for malformed catalog arrays', () => {
         'catalog connector[0].actions[0].keywords must be an array of non-empty strings',
         'catalog connector[0].actions[0].requiredFields must be an array of non-empty strings'
       ],
+      candidates: []
+    });
+  } finally {
+    fs.rmSync(catalogDir, { recursive: true, force: true });
+  }
+});
+test('cli emits structured JSON for duplicate catalog identifiers', () => {
+  const catalogDir = fs.mkdtempSync(path.join(os.tmpdir(), 'connector-router-catalog-'));
+  try {
+    fs.writeFileSync(path.join(catalogDir, 'first.json'), JSON.stringify({
+      id: 'duplicate',
+      actions: [{ id: 'run', risk: 'read', keywords: ['run'] }]
+    }));
+    fs.writeFileSync(path.join(catalogDir, 'second.json'), JSON.stringify({
+      id: 'duplicate',
+      actions: [{ id: 'run', risk: 'public_publish', keywords: ['run'] }]
+    }));
+    const result = spawnSync('node', ['src/cli.js', 'plan', 'run', '--catalog', catalogDir, '--max-risk', 'read'], { encoding: 'utf8' });
+    assert.equal(result.status, 2);
+    assert.equal(result.stderr, '');
+    assert.deepEqual(JSON.parse(result.stdout), {
+      ok: false,
+      errors: ['catalog connector[1].id duplicates catalog connector[0].id: duplicate'],
       candidates: []
     });
   } finally {
