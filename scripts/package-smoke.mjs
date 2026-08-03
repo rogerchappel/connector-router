@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 const packageJson = JSON.parse(await readFile("package.json", "utf8"));
-const tempDir = await mkdtemp(join(tmpdir(), `${packageJson.name}-pack-smoke-`));
+const tempDir = await mkdtemp(join(tmpdir(), `${packageJson.name} pack smoke-`));
 
 try {
   const output = execFileSync(
@@ -58,7 +58,7 @@ try {
     process.exit(1);
   }
 
-  const installDir = join(tempDir, "install");
+  const installDir = join(tempDir, "installed package");
   execFileSync("npm", ["install", "--prefix", installDir, join(tempDir, packument.filename)], {
     stdio: ["ignore", "ignore", "inherit"],
   });
