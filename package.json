@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "description": "Safety-first local action router for agent connector selection and dry-run planning",
   "type": "module",
+  "exports": {
+    ".": "./src/index.js"
+  },
   "bin": {
     "connector-router": "src/cli.js"
   },

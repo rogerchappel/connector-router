@@ -39,6 +39,16 @@ Connector IDs must be unique across a catalog, and action IDs must be unique
 within each connector. Duplicate identifiers are rejected before matching or
 saved-plan validation.
 
+## Library API
+
+The package provides an ESM entry point for planning and validating routes:
+
+```js
+import { planIntent, validatePlan } from "connector-router";
+```
+
+See [docs/API.md](docs/API.md) for the supported API and validation behavior.
+
 Validate a saved plan against the local connector catalog
 before handing it to a downstream approval layer:
 
@@ -95,5 +105,5 @@ Run the same checks locally before opening a PR:
 - `npm run build` - node scripts/validate.js
 - `npm test` - node --test
 - `npm run smoke` - bash scripts/smoke.sh
-- `npm run package:smoke` - npm pack --dry-run with required CLI, docs, fixtures, policy, and changelog checks
+- `npm run package:smoke` - pack and install the tarball, then verify its library import, CLI, docs, fixtures, policy, and changelog
 - `npm run release:check` - npm test && npm run check && npm run build && npm run smoke && npm run package:smoke

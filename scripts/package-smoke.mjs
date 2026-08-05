@@ -63,6 +63,37 @@ try {
     stdio: ["ignore", "ignore", "inherit"],
   });
 
+  const librarySmoke = `
+    import { planIntent, validatePlan } from ${JSON.stringify(packageJson.name)};
+
+    const catalog = [{
+      id: "crm",
+      actions: [{
+        id: "create-task",
+        risk: "internal_write",
+        keywords: ["task"],
+        requiredFields: ["title"],
+      }],
+    }];
+    const planned = planIntent({
+      intent: "create a task",
+      catalog,
+      fields: { title: "Follow up" },
+      maxRisk: "internal_write",
+    });
+    if (!planned.ok || planned.plan.action.operation !== "create-task") {
+      throw new Error("installed planIntent did not return the expected plan");
+    }
+    const validated = validatePlan(planned.plan, catalog);
+    if (!validated.ok) {
+      throw new Error(\`installed validatePlan rejected its generated plan: \${validated.errors.join(", ")}\`);
+    }
+  `;
+  execFileSync(process.execPath, ["--input-type=module", "--eval", librarySmoke], {
+    cwd: installDir,
+    stdio: ["ignore", "inherit", "inherit"],
+  });
+
   const binPath = join(installDir, "node_modules", ".bin", packageJson.name);
   const help = execFileSync(binPath, ["--help"], { encoding: "utf8" });
   if (!help.includes(`Usage: ${packageJson.name}`)) {
@@ -80,7 +111,7 @@ try {
   }
 
   console.log(
-    `${packageJson.name} package smoke passed with ${packument.files.length} packed file(s) and installed CLI checks.`,
+    `${packageJson.name} package smoke passed with ${packument.files.length} packed file(s), an installed library import, and installed CLI checks.`,
   );
 } finally {
   await rm(tempDir, { recursive: true, force: true });
