@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Export the ESM library API from the package root and verify `planIntent` and
+  `validatePlan` from a clean tarball installation.
 - Validate connector and action identifiers and optional action metadata arrays
   before catalog matching or stored-plan validation.
 - Reject unsupported or missing catalog risks and unsupported `--max-risk`

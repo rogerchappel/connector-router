@@ -2,6 +2,15 @@
 
 connector-router exposes a small ESM library from `src/index.js` and a CLI from `src/cli.js`. The public surface is intentionally local-first so agents can call it in dry-run workflows without credentials.
 
+Import the supported public API from the package root:
+
+```js
+import { planIntent, validatePlan } from "connector-router";
+```
+
+The `src/index.js` path describes the source layout; consumers should use the
+package-name import so the published export contract controls resolution.
+
 ## Stability
 
 The V1 API is suitable for release-candidate testing. Treat output shapes as versioned review artifacts before wiring them into external executors.
