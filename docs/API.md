@@ -43,6 +43,16 @@ The CLI prints those library errors as JSON and exits with status `2`. This
 distinguishes a rejected request from CLI usage or file errors, which exit with
 status `1`.
 
+## Planning inputs
+
+`planIntent` requires `intent` to be a non-empty string after trimming and
+`fields` to be a plain object (when omitted, it defaults to an empty object).
+`null`, arrays, primitives, and empty or whitespace-only intents are rejected
+before catalog matching. Invalid inputs return the normal structured planning
+result with `ok: false`, deterministic `errors`, and `candidates: []`; they do
+not throw type errors. When both inputs are invalid, the intent error appears
+before the fields error.
+
 ## Multiple matches
 
 Risk filtering happens before action selection. If exactly one matching action

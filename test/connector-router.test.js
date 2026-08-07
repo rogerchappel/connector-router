@@ -8,6 +8,29 @@ import { RISK_ORDER, planIntent, validatePlan, findCandidates, validateCatalog }
 const catalog = { connectors: [JSON.parse(fs.readFileSync('fixtures/connectors/crm.json','utf8')), JSON.parse(fs.readFileSync('fixtures/connectors/social.json','utf8'))] };
 test('finds candidates from deterministic keywords', () => assert.equal(findCandidates('create a CRM task', catalog).length, 1));
 test('plans safe draft connector action', () => { const r=planIntent({intent:'create a CRM task', catalog, fields:{title:'Follow up'}, maxRisk:'internal_write'}); assert.equal(r.ok,true); assert.equal(r.plan.action.connector,'crm'); });
+test('rejects malformed planning inputs before matching', () => {
+  for (const intent of [null, false, 7, {}, [], '', '   ']) {
+    assert.deepEqual(planIntent({ intent, catalog }), {
+      ok: false,
+      errors: ['intent must be a non-empty string'],
+      candidates: []
+    });
+  }
+  for (const fields of [null, false, 7, 'title', []]) {
+    assert.deepEqual(planIntent({ intent: 'create a CRM task', catalog, fields }), {
+      ok: false,
+      errors: ['fields must be an object'],
+      candidates: []
+    });
+  }
+});
+test('reports all malformed planning inputs deterministically', () => {
+  assert.deepEqual(planIntent({ intent: null, catalog, fields: [] }), {
+    ok: false,
+    errors: ['intent must be a non-empty string', 'fields must be an object'],
+    candidates: []
+  });
+});
 test('reports allowed matches as a deterministic ambiguity instead of selecting by catalog order', () => {
   const connectors = [
     { id: 'beta', actions: [{ id: 'notify', risk: 'draft', keywords: ['notify customer'] }] },

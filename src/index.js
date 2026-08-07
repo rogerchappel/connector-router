@@ -102,6 +102,10 @@ function candidateId({ connector, action }) {
   return `${connector.id}.${action.id}`;
 }
 export function planIntent({ intent, catalog, fields={}, maxRisk='draft' }) {
+  const inputErrors = [];
+  if (!isNonEmptyString(intent)) inputErrors.push('intent must be a non-empty string');
+  if (!isObject(fields)) inputErrors.push('fields must be an object');
+  if (inputErrors.length) return { ok:false, errors:inputErrors, candidates:[] };
   if (!RISK_ORDER.includes(maxRisk)) {
     return { ok:false, errors:[`unsupported maxRisk: ${formatRisk(maxRisk)}`], candidates:[] };
   }

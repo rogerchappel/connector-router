@@ -84,6 +84,11 @@ try {
     if (!planned.ok || planned.plan.action.operation !== "create-task") {
       throw new Error("installed planIntent did not return the expected plan");
     }
+    const invalidInput = planIntent({ intent: null, catalog, fields: [] });
+    const expectedInputErrors = ["intent must be a non-empty string", "fields must be an object"];
+    if (invalidInput.ok || JSON.stringify(invalidInput.errors) !== JSON.stringify(expectedInputErrors)) {
+      throw new Error("installed planIntent did not reject malformed inputs deterministically");
+    }
     const validated = validatePlan(planned.plan, catalog);
     if (!validated.ok) {
       throw new Error(\`installed validatePlan rejected its generated plan: \${validated.errors.join(", ")}\`);
