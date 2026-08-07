@@ -79,6 +79,20 @@ structured JSON responses with status `2`. Successful commands exit `0`.
 
 This project is local-first. It does not execute external actions or write to live accounts. Outputs are review artifacts that another approval-controlled layer may consume.
 
+If more than one action matches within `--max-risk`, planning does not choose by
+catalog or file order. It exits with status `2` and returns a clarification
+result whose `candidates` are stable `connector.action` identifiers:
+
+```json
+{
+  "ok": false,
+  "errors": ["multiple connector actions match intent; clarify the request"],
+  "candidates": ["crm.notify", "support.notify"]
+}
+```
+
+Clarify the intent until it has one allowed match, then run `plan` again.
+
 ## Limitations
 
 - V1 uses deterministic local parsing.

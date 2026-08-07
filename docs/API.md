@@ -43,6 +43,26 @@ The CLI prints those library errors as JSON and exits with status `2`. This
 distinguishes a rejected request from CLI usage or file errors, which exit with
 status `1`.
 
+## Multiple matches
+
+Risk filtering happens before action selection. If exactly one matching action
+is within `maxRisk`, `planIntent` preserves the normal single-match plan even
+when higher-risk actions also matched. If multiple allowed actions match, it
+returns a non-success result instead of selecting whichever action appears
+first:
+
+```json
+{
+  "ok": false,
+  "errors": ["multiple connector actions match intent; clarify the request"],
+  "candidates": ["crm.notify", "support.notify"]
+}
+```
+
+Candidate identifiers are sorted as `connector.action`, making the result
+independent of catalog and directory-entry order. Callers should clarify the
+intent and retry rather than execute an arbitrary candidate.
+
 ## Stored plans and required fields
 
 `validatePlan` requires a stored plan to be a JSON object with an `action`
