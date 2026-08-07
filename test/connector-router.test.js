@@ -8,6 +8,29 @@ import { RISK_ORDER, planIntent, validatePlan, findCandidates, validateCatalog }
 const catalog = { connectors: [JSON.parse(fs.readFileSync('fixtures/connectors/crm.json','utf8')), JSON.parse(fs.readFileSync('fixtures/connectors/social.json','utf8'))] };
 test('finds candidates from deterministic keywords', () => assert.equal(findCandidates('create a CRM task', catalog).length, 1));
 test('plans safe draft connector action', () => { const r=planIntent({intent:'create a CRM task', catalog, fields:{title:'Follow up'}, maxRisk:'internal_write'}); assert.equal(r.ok,true); assert.equal(r.plan.action.connector,'crm'); });
+test('reports allowed matches as a deterministic ambiguity instead of selecting by catalog order', () => {
+  const connectors = [
+    { id: 'beta', actions: [{ id: 'notify', risk: 'draft', keywords: ['notify customer'] }] },
+    { id: 'alpha', actions: [{ id: 'message', risk: 'draft', keywords: ['notify customer'] }] }
+  ];
+  const expected = {
+    ok: false,
+    errors: ['multiple connector actions match intent; clarify the request'],
+    candidates: ['alpha.message', 'beta.notify']
+  };
+  for (const ordered of [connectors, [...connectors].reverse()]) {
+    assert.deepEqual(planIntent({ intent: 'notify customer', catalog: ordered }), expected);
+  }
+});
+test('applies risk filtering before ambiguity detection', () => {
+  const riskCatalog = { connectors: [
+    { id: 'safe', actions: [{ id: 'notify', risk: 'draft', keywords: ['notify'] }] },
+    { id: 'live', actions: [{ id: 'notify', risk: 'external_write', keywords: ['notify'] }] }
+  ] };
+  const result = planIntent({ intent: 'notify', catalog: riskCatalog, maxRisk: 'draft' });
+  assert.equal(result.ok, true);
+  assert.equal(result.plan.action.connector, 'safe');
+});
 test('reports missing fields', () => { const r=planIntent({intent:'create a CRM task', catalog, fields:{}, maxRisk:'internal_write'}); assert.equal(r.ok,false); assert.match(r.errors[0], /missing field/); });
 test('rejects invalid required-field values while planning', () => {
   for (const title of [false, null, '', '   ', 0, [], {}]) {
@@ -198,6 +221,33 @@ test('accepts approval-aware plans that match public publish metadata', () => {
   assert.deepEqual(validatePlan(plan, catalog), { ok: true, errors: [] });
 });
 test('cli plan emits JSON result', () => { const out=execFileSync('node',['src/cli.js','plan','create a CRM task','--catalog','fixtures/connectors','--fields','fixtures/fields/crm-task.json','--max-risk','internal_write'],{encoding:'utf8'}); assert.match(out,/crm/); });
+test('cli reports the same ambiguity when catalog file order is reversed', () => {
+  const expected = {
+    ok: false,
+    errors: ['multiple connector actions match intent; clarify the request'],
+    candidates: ['alpha.message', 'beta.notify']
+  };
+  for (const files of [
+    [['01-beta.json', 'beta', 'notify'], ['02-alpha.json', 'alpha', 'message']],
+    [['01-alpha.json', 'alpha', 'message'], ['02-beta.json', 'beta', 'notify']]
+  ]) {
+    const catalogDir = fs.mkdtempSync(path.join(os.tmpdir(), 'connector-router-catalog-'));
+    try {
+      for (const [file, connector, action] of files) {
+        fs.writeFileSync(path.join(catalogDir, file), JSON.stringify({
+          id: connector,
+          actions: [{ id: action, risk: 'draft', keywords: ['notify customer'] }]
+        }));
+      }
+      const result = spawnSync('node', ['src/cli.js', 'plan', 'notify customer', '--catalog', catalogDir], { encoding: 'utf8' });
+      assert.equal(result.status, 2);
+      assert.equal(result.stderr, '');
+      assert.deepEqual(JSON.parse(result.stdout), expected);
+    } finally {
+      fs.rmSync(catalogDir, { recursive: true, force: true });
+    }
+  }
+});
 test('cli rejects an unsupported --max-risk value', () => {
   const result = spawnSync('node',['src/cli.js','plan','create a CRM task','--catalog','fixtures/connectors','--fields','fixtures/fields/crm-task.json','--max-risk','bogus'],{encoding:'utf8'});
   assert.equal(result.status, 2);

@@ -98,6 +98,9 @@ export function validateCatalog(catalog) {
   const uniquenessErrors = validateCatalogUniqueness(catalog);
   return uniquenessErrors.length ? uniquenessErrors : validateCatalogRisks(catalog);
 }
+function candidateId({ connector, action }) {
+  return `${connector.id}.${action.id}`;
+}
 export function planIntent({ intent, catalog, fields={}, maxRisk='draft' }) {
   if (!RISK_ORDER.includes(maxRisk)) {
     return { ok:false, errors:[`unsupported maxRisk: ${formatRisk(maxRisk)}`], candidates:[] };
@@ -108,6 +111,13 @@ export function planIntent({ intent, catalog, fields={}, maxRisk='draft' }) {
   if (candidates.length === 0) return { ok:false, errors:['no matching connector action'], candidates:[] };
   const allowed = candidates.filter(({action}) => RISK_ORDER.indexOf(action.risk) <= RISK_ORDER.indexOf(maxRisk));
   if (allowed.length === 0) return { ok:false, errors:['matching actions exceed maxRisk'], candidates:candidates.map(c => c.action.id) };
+  if (allowed.length > 1) {
+    return {
+      ok:false,
+      errors:['multiple connector actions match intent; clarify the request'],
+      candidates:allowed.map(candidateId).sort()
+    };
+  }
   const picked = allowed[0];
   const missing = validateFields(picked.action, fields);
   const plan = {
