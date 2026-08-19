@@ -70,8 +70,10 @@ first:
 ```
 
 Candidate identifiers are sorted as `connector.action`, making the result
-independent of catalog and directory-entry order. Callers should clarify the
-intent and retry rather than execute an arbitrary candidate.
+independent of catalog and directory-entry order. The same format and ordering
+applies when all matched actions exceed `maxRisk`, so identical action IDs in
+different connectors remain distinguishable. Callers should clarify the intent
+and retry rather than execute an arbitrary candidate.
 
 ## Stored plans and required fields
 
