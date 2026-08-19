@@ -79,9 +79,11 @@ structured JSON responses with status `2`. Successful commands exit `0`.
 
 This project is local-first. It does not execute external actions or write to live accounts. Outputs are review artifacts that another approval-controlled layer may consume.
 
-If more than one action matches within `--max-risk`, planning does not choose by
-catalog or file order. It exits with status `2` and returns a clarification
-result whose `candidates` are stable `connector.action` identifiers:
+Planning rejections that report matched candidates use stable, sorted
+`connector.action` identifiers, including when every match exceeds
+`--max-risk`. If more than one action matches within `--max-risk`, planning does
+not choose by catalog or file order. It exits with status `2` and returns a
+clarification result:
 
 ```json
 {

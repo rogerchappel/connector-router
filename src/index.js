@@ -114,7 +114,7 @@ export function planIntent({ intent, catalog, fields={}, maxRisk='draft' }) {
   const candidates = findCandidates(intent, catalog);
   if (candidates.length === 0) return { ok:false, errors:['no matching connector action'], candidates:[] };
   const allowed = candidates.filter(({action}) => RISK_ORDER.indexOf(action.risk) <= RISK_ORDER.indexOf(maxRisk));
-  if (allowed.length === 0) return { ok:false, errors:['matching actions exceed maxRisk'], candidates:candidates.map(c => c.action.id) };
+  if (allowed.length === 0) return { ok:false, errors:['matching actions exceed maxRisk'], candidates:candidates.map(candidateId).sort() };
   if (allowed.length > 1) {
     return {
       ok:false,
