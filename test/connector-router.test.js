@@ -63,6 +63,20 @@ test('rejects invalid required-field values while planning', () => {
   }
 });
 test('blocks actions above max risk', () => { const r=planIntent({intent:'publish social post', catalog, fields:{body:'hello'}, maxRisk:'draft'}); assert.equal(r.ok,false); assert.match(r.errors[0], /exceed/); });
+test('reports over-risk matches as deterministic connector.action identifiers', () => {
+  const connectors = [
+    { id: 'social', actions: [{ id: 'post', risk: 'public_publish', keywords: ['post update'] }] },
+    { id: 'crm', actions: [{ id: 'post', risk: 'external_write', keywords: ['post update'] }] }
+  ];
+  const expected = {
+    ok: false,
+    errors: ['matching actions exceed maxRisk'],
+    candidates: ['crm.post', 'social.post']
+  };
+  for (const ordered of [connectors, [...connectors].reverse()]) {
+    assert.deepEqual(planIntent({ intent: 'post update', catalog: ordered, maxRisk: 'draft' }), expected);
+  }
+});
 test('rejects an unsupported maximum risk before planning', () => {
   const result = planIntent({ intent: 'create a CRM task', catalog, fields: { title: 'Follow up' }, maxRisk: 'bogus' });
   assert.deepEqual(result, { ok: false, errors: ['unsupported maxRisk: bogus'], candidates: [] });
@@ -269,6 +283,32 @@ test('cli reports the same ambiguity when catalog file order is reversed', () =>
     } finally {
       fs.rmSync(catalogDir, { recursive: true, force: true });
     }
+  }
+});
+test('cli preserves connector identity for identical over-risk action IDs', () => {
+  const catalogDir = fs.mkdtempSync(path.join(os.tmpdir(), 'connector-router-catalog-'));
+  try {
+    for (const [file, connector, risk] of [
+      ['01-social.json', 'social', 'public_publish'],
+      ['02-crm.json', 'crm', 'external_write']
+    ]) {
+      fs.writeFileSync(path.join(catalogDir, file), JSON.stringify({
+        id: connector,
+        actions: [{ id: 'post', risk, keywords: ['post update'] }]
+      }));
+    }
+    const result = spawnSync('node', [
+      'src/cli.js', 'plan', 'post update', '--catalog', catalogDir, '--max-risk', 'draft'
+    ], { encoding: 'utf8' });
+    assert.equal(result.status, 2);
+    assert.equal(result.stderr, '');
+    assert.deepEqual(JSON.parse(result.stdout), {
+      ok: false,
+      errors: ['matching actions exceed maxRisk'],
+      candidates: ['crm.post', 'social.post']
+    });
+  } finally {
+    fs.rmSync(catalogDir, { recursive: true, force: true });
   }
 });
 test('cli rejects an unsupported --max-risk value', () => {
