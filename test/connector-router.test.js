@@ -7,6 +7,18 @@ import { execFileSync, spawnSync } from 'child_process';
 import { RISK_ORDER, planIntent, validatePlan, findCandidates, validateCatalog } from '../src/index.js';
 const catalog = { connectors: [JSON.parse(fs.readFileSync('fixtures/connectors/crm.json','utf8')), JSON.parse(fs.readFileSync('fixtures/connectors/social.json','utf8'))] };
 test('finds candidates from deterministic keywords', () => assert.equal(findCandidates('create a CRM task', catalog).length, 1));
+test('matches keywords case-insensitively at word boundaries', () => {
+  const boundaryCatalog = [{
+    id: 'crm',
+    actions: [{ id: 'create-task', risk: 'draft', keywords: ['task'] }]
+  }];
+  for (const intent of ['TASK', 'create task, now', '(task)', 'task-based']) {
+    assert.equal(findCandidates(intent, boundaryCatalog).length, 1, intent);
+  }
+  for (const intent of ['multitasking', 'taskforce', 'subtask', 'task_2']) {
+    assert.equal(findCandidates(intent, boundaryCatalog).length, 0, intent);
+  }
+});
 test('plans safe draft connector action', () => { const r=planIntent({intent:'create a CRM task', catalog, fields:{title:'Follow up'}, maxRisk:'internal_write'}); assert.equal(r.ok,true); assert.equal(r.plan.action.connector,'crm'); });
 test('rejects malformed planning inputs before matching', () => {
   for (const intent of [null, false, 7, {}, [], '', '   ']) {
@@ -258,6 +270,22 @@ test('accepts approval-aware plans that match public publish metadata', () => {
   assert.deepEqual(validatePlan(plan, catalog), { ok: true, errors: [] });
 });
 test('cli plan emits JSON result', () => { const out=execFileSync('node',['src/cli.js','plan','create a CRM task','--catalog','fixtures/connectors','--fields','fixtures/fields/crm-task.json','--max-risk','internal_write'],{encoding:'utf8'}); assert.match(out,/crm/); });
+test('cli applies keyword boundaries while retaining punctuation matches', () => {
+  const miss = spawnSync('node', ['src/cli.js', 'plan', 'review multitasking research', '--catalog', 'fixtures/connectors'], { encoding: 'utf8' });
+  assert.equal(miss.status, 2);
+  assert.deepEqual(JSON.parse(miss.stdout), {
+    ok: false,
+    errors: ['no matching connector action'],
+    candidates: []
+  });
+
+  const hit = spawnSync('node', [
+    'src/cli.js', 'plan', 'CREATE a CRM task, please', '--catalog', 'fixtures/connectors',
+    '--fields', 'fixtures/fields/crm-task.json', '--max-risk', 'internal_write'
+  ], { encoding: 'utf8' });
+  assert.equal(hit.status, 0);
+  assert.equal(JSON.parse(hit.stdout).plan.action.operation, 'create_task');
+});
 test('cli reports the same ambiguity when catalog file order is reversed', () => {
   const expected = {
     ok: false,

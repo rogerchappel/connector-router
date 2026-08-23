@@ -39,6 +39,10 @@ Connector IDs must be unique across a catalog, and action IDs must be unique
 within each connector. Duplicate identifiers are rejected before matching or
 saved-plan validation.
 
+Catalog keywords match case-insensitively at whole word boundaries. Punctuation
+next to a keyword is allowed, while a keyword such as `task` does not match
+inside `multitasking`, `taskforce`, or another larger word.
+
 ## Library API
 
 The package provides an ESM entry point for planning and validating routes:
