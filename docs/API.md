@@ -20,6 +20,10 @@ The V1 API is suitable for release-candidate testing. Treat output shapes as ver
 `RISK_ORDER` defines the accepted values in ascending order:
 `read`, `draft`, `internal_write`, `external_write`, and `public_publish`.
 `planIntent` validates `maxRisk` and the catalog before matching an action.
+Keyword matching is case-insensitive and requires whole word boundaries: normal
+punctuation may appear next to a keyword, but a keyword does not match inside a
+larger word. Letters, numbers, combining marks, and underscores count as word
+characters for this boundary check.
 `validatePlan` performs the same catalog validation before checking a stored
 plan. A catalog may be an array of connectors or an object with a `connectors`
 array. Connector and action `id` values must be non-empty strings. When
