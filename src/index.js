@@ -75,9 +75,12 @@ function validateCatalogUniqueness(catalog) {
   return errors;
 }
 export function findCandidates(intent, connectors) {
-  const text = intent.toLowerCase();
+  const text = intent;
   return loadCatalog(connectors).flatMap(connector => (connector.actions || []).map(action => ({connector, action})))
-    .filter(({action}) => (action.keywords || []).some(k => text.includes(k.toLowerCase())));
+    .filter(({action}) => (action.keywords || []).some(keyword => {
+      const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      return new RegExp(`(?<![\\p{L}\\p{N}\\p{M}_])${escaped}(?![\\p{L}\\p{N}\\p{M}_])`, 'iu').test(text);
+    }));
 }
 export function validateFields(action, fields={}) {
   return (action.requiredFields || []).filter(field => !isNonEmptyString(fields[field]));
