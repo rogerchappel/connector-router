@@ -24,6 +24,11 @@ Keyword matching is case-insensitive and requires whole word boundaries: normal
 punctuation may appear next to a keyword, but a keyword does not match inside a
 larger word. Letters, numbers, combining marks, and underscores count as word
 characters for this boundary check.
+For a successful single match, `plan.evidence[0].note` begins with
+`Matched keywords:` and lists only the selected action's matching keywords in
+their catalog order. Evidence matching uses the same case-insensitive boundary
+semantics as candidate selection; configured keywords that occur only inside a
+larger word are omitted.
 `validatePlan` performs the same catalog validation before checking a stored
 plan. A catalog may be an array of connectors or an object with a `connectors`
 array. Connector and action `id` values must be non-empty strings. When

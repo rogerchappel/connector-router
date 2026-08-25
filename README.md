@@ -42,6 +42,8 @@ saved-plan validation.
 Catalog keywords match case-insensitively at whole word boundaries. Punctuation
 next to a keyword is allowed, while a keyword such as `task` does not match
 inside `multitasking`, `taskforce`, or another larger word.
+The generated plan evidence note lists only the selected action's keywords that
+matched the intent, in their catalog order, using those same boundary rules.
 
 ## Library API
 
