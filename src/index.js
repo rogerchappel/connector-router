@@ -74,13 +74,16 @@ function validateCatalogUniqueness(catalog) {
   }
   return errors;
 }
+function keywordMatches(intent, keyword) {
+  const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`(?<![\\p{L}\\p{N}\\p{M}_])${escaped}(?![\\p{L}\\p{N}\\p{M}_])`, 'iu').test(intent);
+}
+function matchingKeywords(intent, action) {
+  return (action.keywords || []).filter(keyword => keywordMatches(intent, keyword));
+}
 export function findCandidates(intent, connectors) {
-  const text = intent;
   return loadCatalog(connectors).flatMap(connector => (connector.actions || []).map(action => ({connector, action})))
-    .filter(({action}) => (action.keywords || []).some(keyword => {
-      const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      return new RegExp(`(?<![\\p{L}\\p{N}\\p{M}_])${escaped}(?![\\p{L}\\p{N}\\p{M}_])`, 'iu').test(text);
-    }));
+    .filter(({action}) => matchingKeywords(intent, action).length > 0);
 }
 export function validateFields(action, fields={}) {
   return (action.requiredFields || []).filter(field => !isNonEmptyString(fields[field]));
@@ -130,7 +133,7 @@ export function planIntent({ intent, catalog, fields={}, maxRisk='draft' }) {
   const plan = {
     id: 'route_' + Date.now(), intent, requiresApproval: ['external_write','public_publish'].includes(picked.action.risk), approved: false,
     action: { connector: picked.connector.id, operation: picked.action.id, risk: picked.action.risk, fields },
-    evidence: [{ source: picked.connector.id + '.json', note: 'Matched keywords: ' + (picked.action.keywords || []).join(', ') }]
+    evidence: [{ source: picked.connector.id + '.json', note: 'Matched keywords: ' + matchingKeywords(intent, picked.action).join(', ') }]
   };
   return missing.length ? { ok:false, errors: missing.map(f => 'missing field: ' + f), plan } : { ok:true, plan };
 }
