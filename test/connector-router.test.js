@@ -20,6 +20,24 @@ test('matches keywords case-insensitively at word boundaries', () => {
   }
 });
 test('plans safe draft connector action', () => { const r=planIntent({intent:'create a CRM task', catalog, fields:{title:'Follow up'}, maxRisk:'internal_write'}); assert.equal(r.ok,true); assert.equal(r.plan.action.connector,'crm'); });
+test('plan evidence lists only keywords that matched the intent', () => {
+  const evidenceCatalog = [{
+    id: 'crm',
+    actions: [{ id: 'open', risk: 'draft', keywords: ['task', 'CRM', 'open'] }]
+  }];
+  const result = planIntent({ intent: 'Please OPEN the crm, not multitasking.', catalog: evidenceCatalog });
+  assert.equal(result.ok, true);
+  assert.equal(result.plan.evidence[0].note, 'Matched keywords: CRM, open');
+});
+test('plan evidence uses keyword boundary semantics for punctuation and larger words', () => {
+  const evidenceCatalog = [{
+    id: 'work',
+    actions: [{ id: 'review', risk: 'draft', keywords: ['task', 'review'] }]
+  }];
+  const result = planIntent({ intent: 'REVIEW task-based work, not multitasking.', catalog: evidenceCatalog });
+  assert.equal(result.ok, true);
+  assert.equal(result.plan.evidence[0].note, 'Matched keywords: task, review');
+});
 test('rejects malformed planning inputs before matching', () => {
   for (const intent of [null, false, 7, {}, [], '', '   ']) {
     assert.deepEqual(planIntent({ intent, catalog }), {
@@ -284,7 +302,9 @@ test('cli applies keyword boundaries while retaining punctuation matches', () =>
     '--fields', 'fixtures/fields/crm-task.json', '--max-risk', 'internal_write'
   ], { encoding: 'utf8' });
   assert.equal(hit.status, 0);
-  assert.equal(JSON.parse(hit.stdout).plan.action.operation, 'create_task');
+  const plan = JSON.parse(hit.stdout).plan;
+  assert.equal(plan.action.operation, 'create_task');
+  assert.deepEqual(plan.evidence, [{ source: 'crm.json', note: 'Matched keywords: crm task, create a crm' }]);
 });
 test('cli reports the same ambiguity when catalog file order is reversed', () => {
   const expected = {
