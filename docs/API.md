@@ -91,6 +91,15 @@ object. When present, `action.fields` must also be an object. These structural
 checks run before catalog validation, so malformed plans return deterministic
 `{ "ok": false, "errors": [...] }` results without attempting catalog lookup.
 
+Approval flags are strict booleans. For catalog actions at `external_write` or
+`public_publish` risk, an execution-valid stored plan must contain
+`requiresApproval: true` and `approved: true`. `planIntent` instead emits these
+plans with `approved: false`, making its output a pending-approval review
+artifact rather than an execution-valid plan. Plans at `read`, `draft`, or
+`internal_write` risk must contain `requiresApproval: false` and
+`approved: false`. Missing or wrong-type values produce structured validation
+errors; values such as `"true"`, `1`, and `null` are never treated as approval.
+
 Every field named by an action's `requiredFields` must have a non-empty string
 value after trimming whitespace. Missing properties, `null`, booleans, numbers,
 arrays, objects, and empty or whitespace-only strings are reported as

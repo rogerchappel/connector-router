@@ -29,7 +29,7 @@ connector-router --help
 node src/cli.js plan "create a CRM task" --catalog fixtures/connectors --fields fixtures/fields/crm-task.json --max-risk internal_write
 ```
 
-The `plan` command prints JSON with either an approved dry-run action or
+The `plan` command prints JSON with either a generated dry-run plan or
 blocking findings. Supported risk values, from least to most privileged, are
 `read`, `draft`, `internal_write`, `external_write`, and `public_publish`.
 Both catalog actions and `--max-risk` must use one of these exact values.
@@ -60,12 +60,18 @@ before handing it to a downstream approval layer:
 
 ```bash
 node src/cli.js validate fixtures/plans/crm-task-plan.json --catalog fixtures/connectors
-node src/cli.js validate fixtures/plans/social-post-plan.json --catalog fixtures/connectors
+node src/cli.js validate fixtures/plans/social-pending-plan.json --catalog fixtures/connectors # exits 2
+node src/cli.js validate fixtures/plans/social-approved-plan.json --catalog fixtures/connectors
 ```
 
 Validation treats the matched catalog action as authoritative: a saved plan's
 `action.risk` must exactly match the catalog risk, and actions cataloged as
-`external_write` or `public_publish` must set `requiresApproval` to `true`.
+`external_write` or `public_publish` must set both `requiresApproval` and
+`approved` to `true`. Generated plans at those risk levels deliberately set
+`approved` to `false`, so they remain pending review until an approval layer
+records an explicit boolean `true`. Lower-risk plans use boolean `false` for
+both flags. Missing flags and string/number lookalikes are rejected rather than
+interpreted by truthiness.
 Changing stored plan metadata cannot lower the catalog's approval boundary.
 Saved plans must be JSON objects containing an `action` object; if present,
 `action.fields` must be an object. Required fields accept only non-empty string
