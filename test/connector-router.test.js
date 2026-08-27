@@ -255,6 +255,7 @@ test('rejects invalid required-field values in stored plans', () => {
   for (const title of [false, null, '', '   ', 0, [], {}]) {
     const plan = {
       requiresApproval: false,
+      approved: false,
       action: { connector: 'crm', operation: 'create_task', risk: 'internal_write', fields: { title } }
     };
     assert.deepEqual(validatePlan(plan, catalog), { ok: false, errors: ['missing field: title'] }, JSON.stringify(title));
@@ -291,6 +292,7 @@ test('rejects unknown and missing catalog risks when validating stored plans', (
 test('rejects stored plans whose risk understates catalog metadata', () => {
   const plan = {
     requiresApproval: false,
+    approved: true,
     action: { connector: 'social', operation: 'publish_post', risk: 'read', fields: { body: 'hello' } }
   };
   const result = validatePlan(plan, catalog);
@@ -300,6 +302,7 @@ test('rejects stored plans whose risk understates catalog metadata', () => {
 test('accepts approval-aware plans that match public publish metadata', () => {
   const plan = {
     requiresApproval: true,
+    approved: true,
     action: { connector: 'social', operation: 'publish_post', risk: 'public_publish', fields: { body: 'hello' } }
   };
   assert.deepEqual(validatePlan(plan, catalog), { ok: true, errors: [] });

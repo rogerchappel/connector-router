@@ -154,7 +154,12 @@ export function validatePlan(plan, catalog) {
   if (action) {
     if (plan.action.risk !== action.risk) errors.push('action risk does not match catalog');
     errors.push(...validateFields(action, plan.action.fields || {}).map(f => 'missing field: ' + f));
-    if (['external_write','public_publish'].includes(action.risk) && plan.requiresApproval !== true) errors.push('approval required');
+    const approvalRequired = ['external_write','public_publish'].includes(action.risk);
+    if (typeof plan.requiresApproval !== 'boolean') errors.push('requiresApproval must be a boolean');
+    else if (plan.requiresApproval !== approvalRequired) errors.push(approvalRequired ? 'approval required' : 'approval not required for risk');
+    if (typeof plan.approved !== 'boolean') errors.push('approved must be a boolean');
+    else if (approvalRequired && plan.approved !== true) errors.push('approval not granted');
+    else if (!approvalRequired && plan.approved !== false) errors.push('approved must be false when approval is not required');
   }
   return { ok: errors.length === 0, errors };
 }
