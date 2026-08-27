@@ -2,7 +2,7 @@
   "id": "route_social_fixture",
   "intent": "publish social post",
   "requiresApproval": true,
-  "approved": false,
+  "approved": true,
   "action": {
     "connector": "social",
     "operation": "publish_post",
