@@ -1,0 +1,8 @@
+{
+  "id": "route_fixture_approved",
+  "intent": "publish social post",
+  "requiresApproval": true,
+  "approved": true,
+  "action": {"connector":"social","operation":"publish_post","risk":"public_publish","fields":{"body":"Launch note"}},
+  "evidence": [{"source":"social.json","note":"Matched keywords: publish social"}]
+}

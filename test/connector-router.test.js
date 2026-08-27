@@ -220,6 +220,23 @@ test('accepts missing and valid optional action arrays', () => {
   }] }), []);
 });
 test('validates stored plans against catalog', () => { const plan=JSON.parse(fs.readFileSync('fixtures/plans/crm-task-plan.json','utf8')); assert.equal(validatePlan(plan,catalog).ok,true); });
+test('requires exact approval flags for stored external plans', () => {
+  const base = { action:{connector:'social',operation:'publish_post',risk:'public_publish',fields:{body:'hello'}} };
+  for (const plan of [
+    {...base, requiresApproval:false, approved:true},
+    {...base, approved:true},
+    {...base, requiresApproval:'true', approved:true},
+    {...base, requiresApproval:true, approved:false},
+    {...base, requiresApproval:true},
+    {...base, requiresApproval:true, approved:'true'}
+  ]) assert.equal(validatePlan(plan,catalog).ok, false);
+  assert.equal(validatePlan({...base, requiresApproval:true, approved:true},catalog).ok,true);
+});
+test('rejects wrong-type approval flags for lower-risk stored plans', () => {
+  const base = JSON.parse(fs.readFileSync('fixtures/plans/crm-task-plan.json','utf8'));
+  assert.equal(validatePlan({...base, requiresApproval:'false'},catalog).ok,false);
+  assert.equal(validatePlan({...base, approved:0},catalog).ok,false);
+});
 test('rejects malformed stored-plan structure before catalog lookup', () => {
   const malformedCatalog = null;
   for (const [plan, errors] of [
@@ -472,6 +489,12 @@ test('cli emits structured JSON for malformed stored plans', () => {
   }
 });
 test('cli exits nonzero when blocked by risk', () => { const r=spawnSync('node',['src/cli.js','plan','publish social post','--catalog','fixtures/connectors','--fields','fixtures/fields/social.json'],{encoding:'utf8'}); assert.equal(r.status,2); });
+test('cli rejects pending and accepts approved stored write plans', () => {
+  const pending=spawnSync('node',['src/cli.js','validate','fixtures/plans/social-pending-plan.json','--catalog','fixtures/connectors'],{encoding:'utf8'});
+  const approved=spawnSync('node',['src/cli.js','validate','fixtures/plans/social-approved-plan.json','--catalog','fixtures/connectors'],{encoding:'utf8'});
+  assert.equal(pending.status,2); assert.match(pending.stdout,/approval not granted/);
+  assert.equal(approved.status,0);
+});
 test('cli help exits cleanly', () => { const r=spawnSync('node',['src/cli.js','--help'],{encoding:'utf8'}); assert.equal(r.status,0); assert.match(r.stdout,/Usage: connector-router/); });
 test('cli version prints package version', () => { const pkg=JSON.parse(fs.readFileSync('package.json','utf8')); const r=spawnSync('node',['src/cli.js','--version'],{encoding:'utf8'}); assert.equal(r.status,0); assert.equal(r.stdout.trim(),pkg.version); });
 for (const { name, args, message } of [
