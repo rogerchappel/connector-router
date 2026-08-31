@@ -5,7 +5,7 @@ Safety-first local action router for agent connector selection and dry-run plann
 ## Quickstart
 
 ```bash
-npm install
+npm ci
 npm run smoke
 ```
 
