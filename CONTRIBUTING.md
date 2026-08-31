@@ -7,6 +7,7 @@ Small, focused pull requests are preferred.
 Run the release-readiness stack before opening a pull request:
 
 ```bash
+npm ci
 npm test
 npm run check
 npm run build
