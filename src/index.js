@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 export const RISK_ORDER = ['read','draft','internal_write','external_write','public_publish'];
 export function loadCatalog(catalog) {
   if (Array.isArray(catalog)) return catalog;
@@ -107,6 +109,9 @@ export function validateCatalog(catalog) {
 function candidateId({ connector, action }) {
   return `${connector.id}.${action.id}`;
 }
+function createPlanId() {
+  return `route_${Date.now().toString(36)}_${randomUUID().replaceAll('-', '')}`;
+}
 export function planIntent({ intent, catalog, fields={}, maxRisk='draft' }) {
   const inputErrors = [];
   if (!isNonEmptyString(intent)) inputErrors.push('intent must be a non-empty string');
@@ -131,7 +136,7 @@ export function planIntent({ intent, catalog, fields={}, maxRisk='draft' }) {
   const picked = allowed[0];
   const missing = validateFields(picked.action, fields);
   const plan = {
-    id: 'route_' + Date.now(), intent, requiresApproval: ['external_write','public_publish'].includes(picked.action.risk), approved: false,
+    id: createPlanId(), intent, requiresApproval: ['external_write','public_publish'].includes(picked.action.risk), approved: false,
     action: { connector: picked.connector.id, operation: picked.action.id, risk: picked.action.risk, fields },
     evidence: [{ source: picked.connector.id + '.json', note: 'Matched keywords: ' + matchingKeywords(intent, picked.action).join(', ') }]
   };
