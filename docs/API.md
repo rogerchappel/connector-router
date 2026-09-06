@@ -29,6 +29,9 @@ For a successful single match, `plan.evidence[0].note` begins with
 their catalog order. Evidence matching uses the same case-insensitive boundary
 semantics as candidate selection; configured keywords that occur only inside a
 larger word are omitted.
+CLI catalogs retain each loaded JSON filename in `plan.evidence[0].source`.
+Programmatic `planIntent` catalogs have no filesystem provenance, so their
+evidence source defaults deterministically to `<connector-id>.json`.
 `validatePlan` performs the same catalog validation before checking a stored
 plan. A catalog may be an array of connectors or an object with a `connectors`
 array. Connector and action `id` values must be non-empty strings. When

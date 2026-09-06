@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Preserve the source catalog filename in CLI-generated plan evidence when it
+  differs from the connector ID.
 - Export the ESM library API from the package root and verify `planIntent` and
   `validatePlan` from a clean tarball installation.
 - Validate connector and action identifiers and optional action metadata arrays
