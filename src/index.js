@@ -112,6 +112,13 @@ function candidateId({ connector, action }) {
 function createPlanId() {
   return `route_${Date.now().toString(36)}_${randomUUID().replaceAll('-', '')}`;
 }
+function connectorSource(catalog, connector) {
+  if (catalog && Array.isArray(catalog.connectors) && Array.isArray(catalog.sources)) {
+    const source = catalog.sources[catalog.connectors.indexOf(connector)];
+    if (isNonEmptyString(source)) return source;
+  }
+  return connector.id + '.json';
+}
 export function planIntent({ intent, catalog, fields={}, maxRisk='draft' }) {
   const inputErrors = [];
   if (!isNonEmptyString(intent)) inputErrors.push('intent must be a non-empty string');
@@ -138,7 +145,7 @@ export function planIntent({ intent, catalog, fields={}, maxRisk='draft' }) {
   const plan = {
     id: createPlanId(), intent, requiresApproval: ['external_write','public_publish'].includes(picked.action.risk), approved: false,
     action: { connector: picked.connector.id, operation: picked.action.id, risk: picked.action.risk, fields },
-    evidence: [{ source: picked.connector.id + '.json', note: 'Matched keywords: ' + matchingKeywords(intent, picked.action).join(', ') }]
+    evidence: [{ source: connectorSource(catalog, picked.connector), note: 'Matched keywords: ' + matchingKeywords(intent, picked.action).join(', ') }]
   };
   return missing.length ? { ok:false, errors: missing.map(f => 'missing field: ' + f), plan } : { ok:true, plan };
 }
