@@ -337,6 +337,21 @@ test('cli applies keyword boundaries while retaining punctuation matches', () =>
   assert.equal(plan.action.operation, 'create_task');
   assert.deepEqual(plan.evidence, [{ source: 'crm.json', note: 'Matched keywords: crm task, create a crm' }]);
 });
+test('cli evidence preserves a catalog filename that differs from the connector id', () => {
+  const catalogDir = fs.mkdtempSync(path.join(os.tmpdir(), 'connector-router-catalog-'));
+  try {
+    fs.copyFileSync('fixtures/connectors/crm.json', path.join(catalogDir, 'custom-name.json'));
+    const result = spawnSync('node', [
+      'src/cli.js', 'plan', 'create a CRM task', '--catalog', catalogDir,
+      '--fields', 'fixtures/fields/crm-task.json', '--max-risk', 'internal_write'
+    ], { encoding: 'utf8' });
+    assert.equal(result.status, 0);
+    assert.equal(result.stderr, '');
+    assert.equal(JSON.parse(result.stdout).plan.evidence[0].source, 'custom-name.json');
+  } finally {
+    fs.rmSync(catalogDir, { recursive: true, force: true });
+  }
+});
 test('cli reports the same ambiguity when catalog file order is reversed', () => {
   const expected = {
     ok: false,
