@@ -44,6 +44,9 @@ next to a keyword is allowed, while a keyword such as `task` does not match
 inside `multitasking`, `taskforce`, or another larger word.
 The generated plan evidence note lists only the selected action's keywords that
 matched the intent, in their catalog order, using those same boundary rules.
+Generated plan IDs retain the `route_` prefix and combine the local creation
+time with a random UUID. They require no network service or credentials and
+remain distinct when multiple plans are created during the same millisecond.
 
 ## Library API
 
