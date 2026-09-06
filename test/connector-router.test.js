@@ -20,6 +20,17 @@ test('matches keywords case-insensitively at word boundaries', () => {
   }
 });
 test('plans safe draft connector action', () => { const r=planIntent({intent:'create a CRM task', catalog, fields:{title:'Follow up'}, maxRisk:'internal_write'}); assert.equal(r.ok,true); assert.equal(r.plan.action.connector,'crm'); });
+test('assigns distinct plan ids when the clock does not advance', (t) => {
+  t.mock.method(Date, 'now', () => 1788664903793);
+  const ids = Array.from({ length: 100 }, () => planIntent({
+    intent: 'create a CRM task',
+    catalog,
+    fields: { title: 'Follow up' },
+    maxRisk: 'internal_write'
+  }).plan.id);
+  assert.equal(new Set(ids).size, ids.length);
+  assert.ok(ids.every(id => /^route_[0-9a-z]+_[0-9a-f]{32}$/.test(id)));
+});
 test('plan evidence lists only keywords that matched the intent', () => {
   const evidenceCatalog = [{
     id: 'crm',
