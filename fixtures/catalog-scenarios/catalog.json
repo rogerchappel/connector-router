@@ -1,0 +1,20 @@
+{
+  "connectors": [
+    {
+      "id": "calendar",
+      "name": "Calendar",
+      "actions": [
+        { "id": "find_events", "risk": "read", "keywords": ["find calendar events", "search meetings"] }
+      ]
+    },
+    {
+      "id": "support",
+      "name": "Support desk",
+      "actions": [
+        { "id": "draft_reply", "risk": "draft", "keywords": ["draft support reply"], "requiredFields": ["body"] },
+        { "id": "send_reply", "risk": "external_write", "keywords": ["send support reply"], "requiredFields": ["body"] }
+      ]
+    }
+  ],
+  "sources": ["calendar-export.json", "support-catalog.json"]
+}
