@@ -1,0 +1,12 @@
+{
+  "id": "issue-tracker",
+  "name": "Fixture Issue Tracker",
+  "actions": [
+    {
+      "id": "create_issue",
+      "risk": "internal_write",
+      "keywords": ["issue tracker ticket", "file a bug", "create an issue"],
+      "requiredFields": ["title"]
+    }
+  ]
+}

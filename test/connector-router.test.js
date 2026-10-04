@@ -7,6 +7,16 @@ import { execFileSync, spawnSync } from 'child_process';
 import { RISK_ORDER, planIntent, validatePlan, findCandidates, validateCatalog } from '../src/index.js';
 const catalog = { connectors: [JSON.parse(fs.readFileSync('fixtures/connectors/crm.json','utf8')), JSON.parse(fs.readFileSync('fixtures/connectors/social.json','utf8'))] };
 test('finds candidates from deterministic keywords', () => assert.equal(findCandidates('create a CRM task', catalog).length, 1));
+test('routes a representative issue-tracker catalog action with required fields', () => {
+  const tracker = JSON.parse(fs.readFileSync('fixtures/connectors/issue-tracker.json', 'utf8'));
+  const fields = JSON.parse(fs.readFileSync('fixtures/fields/issue-tracker.json', 'utf8'));
+  const result = planIntent({ intent: 'Please create an issue for this bug', catalog: [tracker], fields, maxRisk: 'internal_write' });
+  assert.equal(result.ok, true);
+  assert.equal(result.plan.action.connector, 'issue-tracker');
+  assert.equal(result.plan.action.operation, 'create_issue');
+  assert.deepEqual(result.plan.action.fields, fields);
+  assert.deepEqual(result.plan.evidence, [{ source: 'issue-tracker.json', note: 'Matched keywords: create an issue' }]);
+});
 test('matches keywords case-insensitively at word boundaries', () => {
   const boundaryCatalog = [{
     id: 'crm',
