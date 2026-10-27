@@ -3,6 +3,7 @@
   "intent": "publish social post",
   "requiresApproval": true,
   "approved": true,
+  "evidence": [{ "source": "social.json", "note": "Matched publish keyword" }],
   "action": {
     "connector": "social",
     "operation": "publish_post",

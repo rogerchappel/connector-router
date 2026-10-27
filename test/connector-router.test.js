@@ -240,9 +240,26 @@ test('accepts missing and valid optional action arrays', () => {
     ]
   }] }), []);
 });
+test('requires valid stored-plan metadata', () => {
+  const base = JSON.parse(fs.readFileSync('fixtures/plans/crm-task-plan.json', 'utf8'));
+  for (const [field, value, error] of [
+    ['id', undefined, 'plan.id must be a non-empty string'],
+    ['id', '', 'plan.id must be a non-empty string'],
+    ['intent', undefined, 'plan.intent must be a non-empty string'],
+    ['intent', 7, 'plan.intent must be a non-empty string'],
+    ['evidence', undefined, 'plan.evidence must be a non-empty array'],
+    ['evidence', [], 'plan.evidence must be a non-empty array'],
+    ['evidence', [{ source: '', note: 'evidence note' }], 'plan.evidence[0].source must be a non-empty string'],
+    ['evidence', [{ source: 'catalog.json', note: '' }], 'plan.evidence[0].note must be a non-empty string']
+  ]) {
+    const plan = { ...base, [field]: value };
+    assert.deepEqual(validatePlan(plan, catalog), { ok: false, errors: [error] });
+  }
+  assert.deepEqual(validatePlan(base, catalog), { ok: true, errors: [] });
+});
 test('validates stored plans against catalog', () => { const plan=JSON.parse(fs.readFileSync('fixtures/plans/crm-task-plan.json','utf8')); assert.equal(validatePlan(plan,catalog).ok,true); });
 test('requires exact approval flags for stored external plans', () => {
-  const base = { action:{connector:'social',operation:'publish_post',risk:'public_publish',fields:{body:'hello'}} };
+  const base = { id: 'social-plan', intent: 'publish social post', evidence: [{ source: 'social.json', note: 'Matched publish keyword' }], action:{connector:'social',operation:'publish_post',risk:'public_publish',fields:{body:'hello'}} };
   for (const plan of [
     {...base, requiresApproval:false, approved:true},
     {...base, approved:true},
@@ -275,6 +292,7 @@ test('rejects malformed stored-plan structure before catalog lookup', () => {
 test('rejects invalid required-field values in stored plans', () => {
   for (const title of [false, null, '', '   ', 0, [], {}]) {
     const plan = {
+      id: 'invalid-field-plan', intent: 'create a task', evidence: [{ source: 'crm.json', note: 'matched create task' }],
       requiresApproval: false,
       approved: false,
       action: { connector: 'crm', operation: 'create_task', risk: 'internal_write', fields: { title } }
@@ -312,6 +330,7 @@ test('rejects unknown and missing catalog risks when validating stored plans', (
 });
 test('rejects stored plans whose risk understates catalog metadata', () => {
   const plan = {
+    id: 'social-plan', intent: 'publish social post', evidence: [{ source: 'social.json', note: 'Matched publish keyword' }],
     requiresApproval: false,
     approved: true,
     action: { connector: 'social', operation: 'publish_post', risk: 'read', fields: { body: 'hello' } }
@@ -322,6 +341,7 @@ test('rejects stored plans whose risk understates catalog metadata', () => {
 });
 test('accepts approval-aware plans that match public publish metadata', () => {
   const plan = {
+    id: 'social-plan', intent: 'publish social post', evidence: [{ source: 'social.json', note: 'Matched publish keyword' }],
     requiresApproval: true,
     approved: true,
     action: { connector: 'social', operation: 'publish_post', risk: 'public_publish', fields: { body: 'hello' } }

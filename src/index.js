@@ -161,6 +161,20 @@ export function validatePlan(plan, catalog) {
   const connector = connectors.find(c => c.id === plan.action?.connector);
   const action = connector?.actions?.find(a => a.id === plan.action?.operation);
   const errors = [];
+  if (!isNonEmptyString(plan.id)) errors.push('plan.id must be a non-empty string');
+  if (!isNonEmptyString(plan.intent)) errors.push('plan.intent must be a non-empty string');
+  if (!Array.isArray(plan.evidence) || plan.evidence.length === 0) {
+    errors.push('plan.evidence must be a non-empty array');
+  } else {
+    for (const [index, item] of plan.evidence.entries()) {
+      if (!isObject(item)) {
+        errors.push(`plan.evidence[${index}] must be an object`);
+        continue;
+      }
+      if (!isNonEmptyString(item.source)) errors.push(`plan.evidence[${index}].source must be a non-empty string`);
+      if (!isNonEmptyString(item.note)) errors.push(`plan.evidence[${index}].note must be a non-empty string`);
+    }
+  }
   if (!connector) errors.push('unknown connector');
   if (!action) errors.push('unknown action');
   if (action) {
