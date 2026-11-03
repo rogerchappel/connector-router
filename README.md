@@ -74,10 +74,12 @@ Validation treats the matched catalog action as authoritative: a saved plan's
 `action.risk` must exactly match the catalog risk, and actions cataloged as
 `external_write` or `public_publish` must set both `requiresApproval` and
 `approved` to `true`. Generated plans at those risk levels deliberately set
-`approved` to `false`, so they remain pending review until an approval layer
-records an explicit boolean `true`. Lower-risk plans use boolean `false` for
-both flags. Missing flags and string/number lookalikes are rejected rather than
-interpreted by truthiness.
+`approved` to `false`, so they remain pending review. `validatePlan` accepts a
+high-risk plan only after a separate trusted approval layer records boolean
+`true`; setting that field in a saved JSON file is not itself proof of human
+approval. The library does not authenticate approvers or authorize execution.
+Lower-risk plans use boolean `false` for both flags. Missing flags and
+string/number lookalikes are rejected rather than interpreted by truthiness.
 Changing stored plan metadata cannot lower the catalog's approval boundary.
 Saved plans must be JSON objects containing an `action` object; if present,
 `action.fields` must be an object. Required fields accept only non-empty string
