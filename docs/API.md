@@ -98,8 +98,12 @@ Approval flags are strict booleans. For catalog actions at `external_write` or
 `public_publish` risk, an execution-valid stored plan must contain
 `requiresApproval: true` and `approved: true`. `planIntent` instead emits these
 plans with `approved: false`, making its output a pending-approval review
-artifact rather than an execution-valid plan. Plans at `read`, `draft`, or
-`internal_write` risk must contain `requiresApproval: false` and
+artifact rather than an execution-valid plan. A trusted approval layer must
+record boolean `true` before `validatePlan` accepts such a plan. The library
+only checks the stored flag; it does not authenticate an approver, establish
+that a human reviewed the plan, or authorize execution. Do not treat changing
+`approved` in a saved JSON file as proof of approval. Plans at `read`, `draft`,
+or `internal_write` risk must contain `requiresApproval: false` and
 `approved: false`. Missing or wrong-type values produce structured validation
 errors; values such as `"true"`, `1`, and `null` are never treated as approval.
 
