@@ -11,7 +11,7 @@
   },
   "scripts": {
     "test": "node --test",
-    "check": "node --check src/*.js test/*.test.js",
+    "check": "node --check src/cli.js && node --check src/index.js && node --check test/connector-router.test.js",
     "build": "node scripts/validate.js",
     "smoke": "bash scripts/smoke.sh",
     "package:smoke": "node scripts/package-smoke.mjs",
