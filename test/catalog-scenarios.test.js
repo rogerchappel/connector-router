@@ -48,6 +48,23 @@ test('external catalog scenarios reject missing fields and require approval for 
   assert.deepEqual(validatePlan(approvalAware.plan, catalog), { ok: false, errors: ['approval not granted'] });
 });
 
+test('issue-tracker catalog routes bug reports with required title and source evidence', () => {
+  const tracker = JSON.parse(fs.readFileSync(new URL('../fixtures/connectors/issue-tracker.json', import.meta.url), 'utf8'));
+  const result = planIntent({
+    intent: 'Please file a bug in the issue tracker',
+    catalog: { connectors: [tracker], sources: ['issue-tracker-export.json'] },
+    fields: { title: 'Login page returns an error' },
+    maxRisk: 'internal_write'
+  });
+  assert.equal(result.ok, true);
+  assert.deepEqual(stablePlan(result), {
+    intent: 'Please file a bug in the issue tracker', requiresApproval: false, approved: false,
+    action: { connector: 'issue-tracker', operation: 'create_issue', risk: 'internal_write', fields: { title: 'Login page returns an error' } },
+    evidence: [{ source: 'issue-tracker-export.json', note: 'Matched keywords: file a bug' }]
+  });
+  assert.deepEqual(validatePlan(result.plan, { connectors: [tracker], sources: ['issue-tracker-export.json'] }), { ok: true, errors: [] });
+});
+
 test('external catalog scenarios make ambiguous routing and risk limits explicit', () => {
   const ambiguous = {
     connectors: [...catalog.connectors, { id: 'legacy-calendar', actions: [{ id: 'search', risk: 'read', keywords: ['find calendar events'] }] }]
