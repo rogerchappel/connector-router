@@ -96,6 +96,19 @@ test('reports allowed matches as a deterministic ambiguity instead of selecting 
     assert.deepEqual(planIntent({ intent: 'notify customer', catalog: ordered }), expected);
   }
 });
+test('orders equal-scoring candidates deterministically when catalog order changes', () => {
+  const connectors = [
+    { id: 'beta', actions: [{ id: 'notify', risk: 'draft', keywords: ['notify customer', 'notify'] }] },
+    { id: 'alpha', actions: [{ id: 'message', risk: 'draft', keywords: ['notify customer', 'notify'] }] },
+    { id: 'gamma', actions: [{ id: 'alert', risk: 'draft', keywords: ['notify'] }] }
+  ];
+  const intent = 'notify customer';
+  const results = [connectors, [...connectors].reverse()].map(ordered =>
+    findCandidates(intent, { connectors: ordered }).map(candidate => `${candidate.connector.id}.${candidate.action.id}`)
+  );
+  assert.deepEqual(results[0], ['beta.notify', 'alpha.message', 'gamma.alert']);
+  assert.deepEqual(results[1], ['gamma.alert', 'alpha.message', 'beta.notify']);
+});
 test('applies risk filtering before ambiguity detection', () => {
   const riskCatalog = { connectors: [
     { id: 'safe', actions: [{ id: 'notify', risk: 'draft', keywords: ['notify'] }] },
