@@ -37,4 +37,17 @@ test('library parser rejects missing option values', () => {
   usageError(['validate', 'plan.json', '--catalog'], 'missing value for --catalog');
 });
 
+test('library parser rejects dash-prefixed values as missing option values', () => {
+  usageError(['plan', 'intent', '--catalog', '-x'], 'missing value for --catalog');
+  usageError(['plan', 'intent', '--fields', '-input.json'], 'missing value for --fields');
+  usageError(['validate', 'plan.json', '--catalog', '-catalog'], 'missing value for --catalog');
+});
+
+test('library parser accepts ordinary option values that begin with neither dash nor option syntax', () => {
+  assert.deepEqual(parseCommandLine(['plan', 'intent', '--catalog', 'catalog-dir', '--max-risk', 'read']), {
+    command: 'plan', positional: 'intent',
+    options: { '--catalog': 'catalog-dir', '--max-risk': 'read' }
+  });
+});
+
 test('usage errors have a documented nonzero status', () => assert.equal(USAGE_STATUS, 1));

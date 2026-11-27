@@ -42,7 +42,7 @@ export function parseCommandLine(argv) {
     if (!allowedOptions.has(argument)) throw new CliUsageError(`unknown option for ${command}: ${argument}`);
     if (Object.hasOwn(options, argument)) throw new CliUsageError(`duplicate option: ${argument}`);
     const value = args[index + 1];
-    if (value === undefined || value.startsWith('--')) throw new CliUsageError(`missing value for ${argument}`);
+    if (value === undefined || value.startsWith('-')) throw new CliUsageError(`missing value for ${argument}`);
     options[argument] = value;
     index += 1;
   }
