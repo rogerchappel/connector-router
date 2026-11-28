@@ -85,7 +85,8 @@ function matchingKeywords(intent, action) {
 }
 export function findCandidates(intent, connectors) {
   return loadCatalog(connectors).flatMap(connector => (connector.actions || []).map(action => ({connector, action})))
-    .filter(({action}) => matchingKeywords(intent, action).length > 0);
+    .filter(({action}) => matchingKeywords(intent, action).length > 0)
+    .sort((left, right) => candidateId(left).localeCompare(candidateId(right)));
 }
 export function validateFields(action, fields={}) {
   return (action.requiredFields || []).filter(field => !isNonEmptyString(fields[field]));
