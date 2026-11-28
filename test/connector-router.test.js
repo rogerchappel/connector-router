@@ -106,8 +106,8 @@ test('orders equal-scoring candidates deterministically when catalog order chang
   const results = [connectors, [...connectors].reverse()].map(ordered =>
     findCandidates(intent, { connectors: ordered }).map(candidate => `${candidate.connector.id}.${candidate.action.id}`)
   );
-  assert.deepEqual(results[0], ['beta.notify', 'alpha.message', 'gamma.alert']);
-  assert.deepEqual(results[1], ['gamma.alert', 'alpha.message', 'beta.notify']);
+  assert.deepEqual(results[0], ['alpha.message', 'beta.notify', 'gamma.alert']);
+  assert.deepEqual(results[1], results[0]);
 });
 test('applies risk filtering before ambiguity detection', () => {
   const riskCatalog = { connectors: [
